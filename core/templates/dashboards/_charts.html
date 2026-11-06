@@ -1,0 +1,40 @@
+<script src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script>
+<script>
+const byClass = {{ charts.by_class|tojson }};
+const perWeek = {{ (charts.per_week or [])|tojson }};
+Chart.defaults.font.family = "Barlow, system-ui, sans-serif";
+Chart.defaults.font.size = 13;
+Chart.defaults.color = "#5b6b7a";
+const grid = { color: "#e8edf0", drawTicks: false };
+const valueLabels = {
+  id: "valueLabels",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    ctx.save(); ctx.font = "600 13px Barlow, sans-serif"; ctx.fillStyle = "#14273a";
+    chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      const v = chart.data.datasets[0].data[i];
+      if (chart.options.indexAxis === "y") { ctx.textBaseline = "middle"; ctx.fillText(v, bar.x + 6, bar.y); }
+      else if (v) { ctx.textAlign = "center"; ctx.fillText(v, bar.x, bar.y - 6); }
+    });
+    ctx.restore();
+  }
+};
+const cc = document.getElementById("c-class");
+if (cc) new Chart(cc, {
+  type: "bar",
+  data: { labels: byClass.map(r => r.label), datasets: [{ data: byClass.map(r => r.accepted), backgroundColor: byClass.map(r => r.color), borderRadius: 4, barThickness: 22 }] },
+  options: { indexAxis: "y", maintainAspectRatio: false, layout: { padding: { right: 28 } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { afterLabel: c => `Detected by AI: ${byClass[c.dataIndex].detected}` } } },
+    scales: { x: { beginAtZero: true, grid, border: { display: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, border: { display: false } } } },
+  plugins: [valueLabels]
+});
+const cw = document.getElementById("c-week");
+if (cw) new Chart(cw, {
+  type: "bar",
+  data: { labels: perWeek.map(w => w.label), datasets: [{ label: "Inspections", data: perWeek.map(w => w.value), backgroundColor: "#1b4d5f", borderRadius: 4, maxBarThickness: 28 }] },
+  options: { maintainAspectRatio: false, layout: { padding: { top: 18 } },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { title: c => `Week of ${c[0].label}` } } },
+    scales: { y: { beginAtZero: true, grid, border: { display: false }, ticks: { precision: 0 } }, x: { grid: { display: false }, border: { color: "#d9e0e5" } } } },
+  plugins: [valueLabels]
+});
+</script>

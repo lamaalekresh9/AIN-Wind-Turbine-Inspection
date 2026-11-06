@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, insp_header, status_badge %}
+{% block title %}{{ insp.code }} · Ask Ain{% endblock %}
+{% block content %}
+{{ insp_header(insp, tab) }}
+{% if not ready %}
+<div class="gate blocked">{{ icon("lock") }}<div><b>The assistant opens when the detection is finished.</b><br>Wait for the AI analysis to complete, then ask anything about the results.</div></div>
+{% else %}
+{% if not chat_on %}
+<div class="gate blocked" style="margin-bottom:14px">{{ icon("alert") }}<div>No AI key is set in <code>.env</code>, so the assistant can only list the findings. Add <code>{{ "OPENAI_API_KEY" if ai.provider == "openai" else "GEMINI_API_KEY" }}</code> and restart for full answers.</div></div>
+{% endif %}
+<div class="cols">
+  <section class="panel chat">
+    <div class="chat-log" id="log" aria-live="polite">
+      {% if not messages %}
+      <div class="empty" id="hello">
+        <h3>Ask anything about this inspection</h3>
+        <p>The assistant sees all {{ insp.findings|length }} findings, the YOLO and VLM results, the review decisions and the evidence images. Ask in Arabic or English.</p>
+      </div>
+      {% endif %}
+      {% for m in messages %}
+      <div class="msg {{ m.role }}{{ ' error' if m.mode == 'error' }}">
+        <div class="who">{{ m.user.name if m.role == 'user' and m.user else "Ain Assistant" }}{% if m.finding %}<span class="chip">{{ m.finding.code }}</span>{% endif %}</div>
+        <div class="body" data-raw="{{ m.content }}"></div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="suggest" id="suggest">
+      <button type="button">Summarize the results of this inspection.</button>
+      <button type="button">Where do YOLO and the VLM disagree, and what should I check?</button>
+      <button type="button">Which finding is the most serious and why?</button>
+      <button type="button" dir="rtl">ما خطورة التشققات المكتشفة وماذا يحدث لو لم تُعالج؟</button>
+      <button type="button" dir="rtl">ما الصيانة الموصى بها لهذه الشفرة؟</button>
+    </div>
+    <div class="focus-chip" id="focus" {% if not focus %}hidden{% endif %}>
+      Asking about <b id="focus-code">{{ focus.code if focus }}</b><button type="button" id="focus-clear" aria-label="Stop focusing on this finding">×</button>
+    </div>
+    <form class="chat-form" id="chat-form">
+      <textarea id="q" rows="1" dir="auto" placeholder="Ask about the detections… / اسأل عن نتائج الفحص…" aria-label="Your question"></textarea>
+      <button class="btn btn-primary" id="send">{{ icon("send") }}Ask</button>
+    </form>
+  </section>
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head"><h3>Ask about one finding</h3></div>
+      <div class="flist-mini" id="flist">
+        {% for f in insp.findings %}
+        <button type="button" data-id="{{ f.id }}" data-code="{{ f.code }}" class="{{ 'on' if focus and focus.id == f.id }}">
+          <span class="dot" style="background:{{ defect_info(f.class_name).color }}"></span>
+          <span><b>{{ f.code }}</b> {{ defect_info(f.class_name).en }}<span class="muted"> · {{ f.vlm_label if f.vlm_verdict else ((f.confidence|pct) ~ " YOLO") }}</span></span>
+          {{ status_badge(f.status) }}
+        </button>
+        {% else %}<div class="empty small">No findings in this inspection.</div>{% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-body small">
+        <p style="margin-top:0"><b>What the assistant sees:</b> inspection details, every finding with its YOLO and VLM results, combined score, review status and notes, the defect references, and up to {{ config.CHAT_MAX_IMAGES }} evidence crops per question.</p>
+        <p class="muted" style="margin:0">{% if chat_on %}Answers by {{ ai.label }} {{ ai.model }}.{% endif %} It's decision support: a qualified inspector makes the final call.</p>
+      </div>
+    </section>
+    {% if messages %}
+    <form method="post" action="{{ url_for('reports.clear_chat', insp_id=insp.id) }}" data-confirm="Clear this conversation for everyone?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost">{{ icon("trash") }}Clear conversation</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if ready %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script>
+AinChat.init({
+  askUrl: "{{ url_for('reports.ask', insp_id=insp.id) }}",
+  me: {{ current_user.name|tojson }},
+  focus: {{ ({"id": focus.id, "code": focus.code} if focus else None)|tojson }},
+});
+</script>
+{% endif %}
+{% endblock %}

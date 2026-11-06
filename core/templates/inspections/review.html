@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, insp_header %}
+{% block title %}{{ insp.code }} · Review{% endblock %}
+{% block content %}
+{{ insp_header(insp, tab) }}
+{% if insp.submit_note and insp.status == "in_review" %}
+<div class="review-note" style="margin-bottom:14px"><b>Note from {{ insp.created_by.name if insp.created_by else "the inspector" }}</b><p>{{ insp.submit_note }}</p></div>
+{% endif %}
+{% if insp.status in ("reviewed", "reported", "rejected") %}
+<div class="gate {{ 'open' if insp.status != 'rejected' else 'blocked' }}" style="margin-bottom:16px">{{ icon("shield" if insp.status != "rejected" else "x") }}<div style="flex:1">
+  {{ "Approved" if insp.status != "rejected" else "Rejected" }} by <b>{{ insp.review_completed_by.name if insp.review_completed_by else "-" }}</b>{% if insp.review_completed_at %} on {{ insp.review_completed_at|dt }}{% endif %}. Decisions are locked.
+  {% if insp.review_comment %}<div class="small" style="margin-top:4px;white-space:pre-line">“{{ insp.review_comment }}”</div>{% endif %}</div>
+  {% if perm.can_reopen(insp) %}
+  <form method="post" action="{{ url_for('inspections.reopen_review', insp_id=insp.id) }}" data-confirm="Reopen the review? Any draft report will be discarded and has to be generated again.">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">{{ icon("unlock") }}Reopen review</button></form>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="review">
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Evidence</h2>
+      {% if can_edit %}
+      <div class="btn-row">
+        <button class="btn btn-sm" id="btn-redraw" type="button" title="Redraw the selected box (B)">{{ icon("box") }}Redraw box <span class="kbd">B</span></button>
+        <button class="btn btn-sm" id="btn-add" type="button" title="Draw a box around a defect the model missed (N)">{{ icon("plus") }}Add missed defect <span class="kbd">N</span></button>
+      </div>
+      {% endif %}
+    </div>
+    <div class="panel-body">
+      <div id="draw-hint" class="flash" style="display:none;margin-bottom:10px"><span></span><button type="button" id="draw-cancel">Cancel</button></div>
+      <div id="viewer"></div>
+      <div class="legend" style="margin-top:10px">{% for k in payload.classes %}<span><span class="dot" style="background:{{ k.color }}"></span>{{ k.en }}</span>{% endfor %}
+        <span class="muted">Dashed box = rejected</span></div>
+    </div>
+  </section>
+
+  <aside class="review-side">
+    <section class="panel">
+      <div class="tally" id="tally"></div>
+      <div class="panel-body" style="border-top:1px solid var(--line-2)">
+        {% if can_edit %}
+        <form method="post" action="{{ url_for('inspections.complete_review', insp_id=insp.id) }}" id="complete-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <p class="small" id="gate-msg" style="margin:0 0 10px"></p>
+          <textarea name="comment" placeholder="Review comment (optional): overall assessment, what you checked…" style="min-height:60px;margin-bottom:8px"></textarea>
+          <button class="btn btn-primary" id="btn-complete" style="width:100%">{{ icon("shield") }}Confirm findings &amp; approve</button>
+        </form>
+        <details class="edit" style="margin-top:10px">
+          <summary>Reject the whole inspection…</summary>
+          <form method="post" action="{{ url_for('inspections.reject_inspection', insp_id=insp.id) }}" data-confirm="Reject {{ insp.code }} and send it back to the inspector?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p class="small muted" style="margin:0 0 6px">Use this when the inspection can't be reviewed (blurry or wrong images, wrong turbine). It goes back to the inspector with your reason.</p>
+            <textarea name="comment" required placeholder="Reason for rejecting (required)" style="min-height:60px;margin-bottom:8px"></textarea>
+            <button class="btn btn-sm btn-danger">{{ icon("x") }}Reject inspection</button>
+          </form>
+        </details>
+        {% if insp.vlm_status in ("done", "partial") %}
+        <button class="btn btn-sm" id="btn-agreed" type="button" style="width:100%;margin-top:8px" title="Accepts pending YOLO findings that the VLM confirmed with a combined score of at least {{ '%.2f'|format(min_fused) }}">{{ icon("check") }}Accept all where both models agree <span id="agreed-n"></span></button>
+        {% endif %}
+        {% else %}
+        <p class="small muted" style="margin:0">Only accepted findings are sent to the Arabic report. Uncertain findings are listed as needing re-inspection.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel" id="editor">
+      <div class="panel-head"><h3 id="ed-title">Select a finding</h3><span id="ed-status"></span></div>
+      <div class="panel-body" id="ed-body"><p class="muted" style="margin:0">Click a box on the image or a finding in the list below.</p></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head" style="padding:10px 14px">
+        <div class="btn-row" id="list-filter" role="tablist">
+          <button class="btn btn-sm btn-primary" data-f="all">All</button>
+          <button class="btn btn-sm" data-f="pending">Pending</button>
+          <button class="btn btn-sm" data-f="accepted">Accepted</button>
+          <button class="btn btn-sm" data-f="rejected">Rejected</button>
+          <button class="btn btn-sm" data-f="uncertain">Uncertain</button>
+          {% if insp.vlm_status in ("done", "partial") %}<button class="btn btn-sm" data-f="disputed">VLM disagrees</button>{% endif %}
+        </div>
+      </div>
+      <div class="flist" id="flist"></div>
+      {% if can_edit %}<div class="panel-body small muted" style="border-top:1px solid var(--line-2);padding:10px 14px">
+        Keys: <span class="kbd">A</span> accept · <span class="kbd">R</span> reject · <span class="kbd">U</span> uncertain · <span class="kbd">J</span>/<span class="kbd">K</span> next / previous</div>{% endif %}
+    </section>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+<script>
+window.REVIEW = {
+  payload: {{ payload|tojson }},
+  canEdit: {{ 'true' if can_edit else 'false' }},
+  updateUrl: "/api/findings/",
+  addUrl: "{{ url_for('inspections.add_finding', insp_id=insp.id) }}",
+  agreedUrl: "{{ url_for('inspections.accept_agreed', insp_id=insp.id) }}",
+  assistantUrl: "{{ url_for('reports.assistant', insp_id=insp.id) }}",
+  minFused: {{ min_fused }},
+  vlmModel: {{ (insp.vlm_model or ai.model or "VLM")|tojson }},
+};
+</script>
+<script src="{{ url_for('static', filename='js/review.js') }}"></script>
+{% endblock %}

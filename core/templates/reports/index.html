@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Reports</h1><p>Arabic inspection reports. A report is final only after a Human Reviewer approves the findings and issues it.</p></div>
+  <div class="btn-row">
+    <a class="btn {{ 'btn-primary' if not args.status }}" href="{{ url_for('reports.index') }}">All</a>
+    <a class="btn {{ 'btn-primary' if args.status == 'draft' }}" href="{{ url_for('reports.index', status='draft') }}">Drafts</a>
+    <a class="btn {{ 'btn-primary' if args.status == 'issued' }}" href="{{ url_for('reports.index', status='issued') }}">Final</a>
+  </div>
+</div>
+{% if awaiting %}
+<section class="panel" style="margin-bottom:18px;border-color:#f0d9a8">
+  <div class="panel-head" style="background:#fffaf0"><h2>Approved inspections without a report</h2></div>
+  <div class="table-wrap"><table class="t"><tbody>
+    {% for i in awaiting %}<tr><td><a class="code" href="{{ url_for('inspections.detail', insp_id=i.id) }}">{{ i.code }}</a></td><td>{{ i.turbine.code }}</td>
+      <td class="small">Approved by {{ i.review_completed_by.name if i.review_completed_by else "-" }} {{ i.review_completed_at|ago }}</td>
+      <td class="right">{% if perm.can_write_report(i) %}<a class="btn btn-sm btn-signal" href="{{ url_for('reports.view', insp_id=i.id) }}">{{ icon("arabic") }}Generate report</a>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+<section class="panel">
+  {% if reports %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Inspection</th><th>Turbine</th><th>Inspector</th><th>Status</th><th>Written by</th><th>Updated</th><th></th></tr></thead>
+    <tbody>{% for r in reports %}{% set i = r.inspection %}
+      <tr><td><a class="code" href="{{ url_for('reports.view', insp_id=i.id) }}">{{ i.code }}</a></td>
+        <td>{{ i.turbine.code }}{{ " · " ~ i.blade.label if i.blade }}</td>
+        <td>{{ i.created_by.name if i.created_by else "-" }}</td>
+        <td>{{ status_badge(r.status, "Final" if r.status == "issued" else "Draft") }}</td>
+        <td class="small">{{ (r.llm_model ~ " (LLM)") if r.generator == "llm" else "Templates" }}{% if r.issued_by %}<div class="muted">Issued by {{ r.issued_by.name }}</div>{% endif %}</td>
+        <td class="small muted">{{ r.updated_at|ago }}</td>
+        <td class="right"><div class="btn-row" style="justify-content:flex-end">
+          <a class="btn btn-sm" href="{{ url_for('reports.view', insp_id=i.id) }}">{{ icon("eye") }}View</a>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('reports.pdf', insp_id=i.id) }}">{{ icon("download") }}PDF</a></div></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<div class="empty"><h3>No reports{{ " match" if args.status }}</h3><p>Reports appear here once a reviewer approves an inspection and generates its Arabic report.</p></div>{% endif %}
+</section>
+{% endblock %}

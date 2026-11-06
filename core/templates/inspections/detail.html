@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, insp_header, status_badge, sev_badge, cls_label %}
+{% block title %}{{ insp.code }} · AI results{% endblock %}
+{% block content %}
+{{ insp_header(insp, tab) }}
+
+{% if insp.is_busy %}
+<section class="panel analyzing" id="analyzing">
+  <div class="panel-body">
+    <svg class="scan" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="50" fill="none" stroke="#e8edf0" stroke-width="8"/>
+      <circle cx="60" cy="60" r="50" fill="none" stroke="#123b4a" stroke-width="8" stroke-dasharray="80 235" stroke-linecap="round">
+        <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="1.4s" repeatCount="indefinite"/></circle>
+      <path d="M60 52v24M54 76h12" stroke="#123b4a" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="48" r="4" fill="#f2b705"/>
+    </svg>
+    <h2>Analyzing {{ insp.media|length }} file{{ 's' if insp.media|length != 1 }}</h2>
+    <p class="muted" id="prog-msg">{{ insp.progress_msg or "Queued" }}</p>
+    <div class="progress" aria-label="Analysis progress"><span id="prog-bar" style="width: {{ insp.progress or 0 }}%"></span></div>
+    <p class="small muted" style="margin-top:12px">You can leave this page. The analysis keeps running and the inspection will be waiting in the history.</p>
+  </div>
+</section>
+
+{% elif insp.status == "failed" %}
+<section class="panel"><div class="panel-body">
+  <h2 style="color:var(--bad)">The analysis didn't finish</h2>
+  <p>{{ insp.error }}</p>
+  <form method="post" action="{{ url_for('inspections.rerun', insp_id=insp.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary">{{ icon("refresh") }}Run the analysis again</button>
+  </form>
+</div></section>
+
+{% else %}
+{% set c = insp.counts() %}
+{% if insp.vlm_status == "running" %}
+<div class="gate" id="vlm-running" style="margin-bottom:16px">{{ icon("refresh") }}<div style="flex:1"><b>Cross-checking the detections with the VLM…</b><br><span class="small muted" id="vlm-msg">{{ insp.progress_msg }}</span></div></div>
+{% elif insp.vlm_status in ("partial", "failed") and insp.vlm_note %}
+<div class="gate blocked" style="margin-bottom:16px">{{ icon("alert") }}<div style="flex:1"><b>VLM check {{ "incomplete" if insp.vlm_status == "partial" else "didn't run" }}.</b> {{ insp.vlm_note }}</div>
+  {% if ai.configured and perm.can_run_vlm(insp) %}
+  <form method="post" action="{{ url_for('inspections.run_vlm', insp_id=insp.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">{{ icon("refresh") }}Run VLM check again</button></form>{% endif %}
+</div>
+{% endif %}
+<div class="cols">
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Detections</h2>
+        <div class="btn-row">
+          <a class="btn btn-sm" id="dl-frame" href="#" title="Download this image with its detection boxes">{{ icon("download") }}Annotated image</a>
+          <label class="check small" style="margin:0;font-weight:500"><input type="checkbox" id="only-hits" checked> Only frames with findings</label>
+          <label class="check small" style="margin:0;font-weight:500"><input type="checkbox" id="show-rej"> Show rejected</label>
+        </div>
+      </div>
+      <div class="panel-body">
+        {% if payload.frames %}<div id="viewer"></div>{% else %}<div class="empty">No frames were analyzed.</div>{% endif %}
+        <div class="legend" style="margin-top:10px">{% for k in payload.classes %}<span><span class="dot" style="background:{{ k.color }}"></span>{{ k.en }}</span>{% endfor %}</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Findings</h2><span class="muted small">{{ c.total }} total · click a row to see it</span></div>
+      {% if insp.findings %}
+      <div class="table-wrap"><table class="t" id="ftable">
+        <thead><tr><th>ID</th><th>Defect</th><th class="right">YOLO</th><th>VLM check</th><th class="right">Combined</th><th>Severity</th><th>Evidence</th><th>Review</th></tr></thead>
+        <tbody>
+        {% for f in insp.findings %}
+          <tr data-id="{{ f.id }}" style="cursor:pointer">
+            <td class="code">{{ f.code }}</td>
+            <td>{{ cls_label(f.class_name) }}{% if f.ai_class_name and f.ai_class_name != f.class_name %} <span class="small muted">(YOLO: {{ defect_info(f.ai_class_name).en }})</span>{% elif f.edited %} <span class="small muted">(re-boxed)</span>{% endif %}{% if f.source == 'manual' %} <span class="small muted">(added by reviewer)</span>{% endif %}</td>
+            <td class="right num">{{ f.confidence|pct }}</td>
+            <td>{% if f.vlm_verdict %}<span class="badge vlm-{{ f.vlm_verdict }}" title="{{ f.vlm_reason }}">{{ f.vlm_label }}{% if f.vlm_verdict == 'relabeled' and f.vlm_class != f.class_name %}: {{ defect_info(f.vlm_class).en }}{% endif %}</span>{% else %}<span class="small muted">–</span>{% endif %}</td>
+            <td class="right num">{{ f.fused_confidence|pct }}</td>
+            <td>{{ sev_badge(f.severity) }}</td>
+            <td class="small">{{ f.frame.label }}{% if f.occurrences > 1 %}<div class="muted">Seen in {{ f.occurrences }} frames, {{ fmt_ts(f.first_ts) }}–{{ fmt_ts(f.last_ts) }}</div>{% endif %}</td>
+            <td>{{ status_badge(f.status) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}
+      <div class="empty"><h3>No defects detected</h3><p>The model found nothing above the {{ "%.2f"|format(insp.conf_threshold) }} confidence threshold. A reviewer can still add missed defects on the Review tab, or you can run the analysis again with a lower threshold.</p></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    {% set st = insp.status %}
+    <section class="panel{{ ' next-attn' if (st in ('draft','rejected') and perm.can_submit(insp)) or (st == 'in_review' and perm.can_review(insp)) }}">
+      <div class="panel-head"><h3>{{ "Status" if current_user.role == "inspector" and st not in ('draft','rejected') else "Next step" }}</h3><a class="small" href="{{ url_for('reports.assistant', insp_id=insp.id) }}">{{ icon("chat") }} Ask Ain about these results</a></div>
+      <div class="panel-body">
+        {% if ai.configured and perm.can_run_vlm(insp) and not insp.vlm_status %}
+          <form method="post" action="{{ url_for('inspections.run_vlm', insp_id=insp.id) }}" style="margin-bottom:12px">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm">{{ icon("eye") }}Cross-check with the VLM</button>
+            <span class="hint">This inspection wasn't checked by {{ ai.model }}. Run it to flag likely false alarms.</span>
+          </form>
+        {% endif %}
+
+        {% if st in ('draft', 'rejected') %}
+          {% if st == 'rejected' %}
+          <div class="review-note bad"><b>Rejected by {{ insp.review_completed_by.name if insp.review_completed_by else "the reviewer" }}</b>{% if insp.review_completed_at %} · {{ insp.review_completed_at|dt }}{% endif %}<p>{{ insp.review_comment }}</p></div>
+          {% endif %}
+          {% if perm.can_submit(insp) %}
+          <form method="post" action="{{ url_for('inspections.submit', insp_id=insp.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p style="margin-top:0">{{ "Fix what the reviewer asked for (re-run the analysis or add notes), then resubmit." if st == 'rejected' else "Check the detections and the VLM analysis, then send the inspection to a Human Reviewer." }}</p>
+            <div class="field"><label for="note">Note for the reviewer <span class="muted" style="font-weight:400">(optional)</span></label>
+              <textarea id="note" name="note" style="min-height:70px" placeholder="e.g. Blade B photographed from the pressure side only">{{ insp.submit_note or '' }}</textarea></div>
+            <button class="btn btn-signal" {{ 'disabled' if insp.vlm_status == 'running' }}>{{ icon("send") }}{{ "Resubmit for review" if st == 'rejected' else "Submit for review" }}</button>
+          </form>
+          {% else %}
+          <p style="margin:0">Waiting for the inspector to {{ "resubmit" if st == 'rejected' else "submit" }} this inspection.</p>
+          {% endif %}
+
+        {% elif st == 'in_review' %}
+          {% if perm.can_review(insp) %}
+            <p>Submitted by <b>{{ insp.created_by.name if insp.created_by else "-" }}</b> {{ insp.submitted_at|ago }}. {{ c.pending }} of {{ c.total }} findings need a decision.</p>
+            {% if insp.submit_note %}<div class="review-note"><b>Inspector's note</b><p>{{ insp.submit_note }}</p></div>{% endif %}
+            <a class="btn btn-signal" href="{{ url_for('inspections.review', insp_id=insp.id) }}">{{ icon("eye") }}Start review</a>
+          {% else %}
+            <p style="margin:0">{{ status_badge(st, insp.status_label) }} Submitted {{ insp.submitted_at|ago }}. A Human Reviewer will accept, reject or edit the findings. You'll see the decision here.</p>
+          {% endif %}
+
+        {% elif st in ('reviewed', 'reported') %}
+          <div class="review-note ok"><b>Approved by {{ insp.review_completed_by.name if insp.review_completed_by else "the reviewer" }}</b>{% if insp.review_completed_at %} · {{ insp.review_completed_at|dt }}{% endif %}
+            <p>{{ c.accepted }} finding{{ 's' if c.accepted != 1 }} confirmed, {{ c.rejected }} rejected{% if c.uncertain %}, {{ c.uncertain }} uncertain{% endif %}.{% if insp.review_comment %}<br>{{ insp.review_comment }}{% endif %}</p></div>
+          {% if st == 'reported' and perm.can_view_report(insp) %}
+            <a class="btn btn-primary" href="{{ url_for('reports.view', insp_id=insp.id) }}">{{ icon("file") }}Open the final report</a>
+          {% elif perm.can_write_report(insp) %}
+            <a class="btn btn-signal" href="{{ url_for('reports.view', insp_id=insp.id) }}">{{ icon("arabic") }}{{ "Generate the Arabic report" if not insp.report else "Go to the Arabic report" }}</a>
+          {% else %}
+            <p class="small muted" style="margin:0">The reviewer is preparing the final Arabic report.</p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>AI detections by type</h3></div>
+      <div class="panel-body">
+        {% set ai = insp.findings|selectattr('source','equalto','ai')|list %}
+        {% for k in payload.classes %}{% set n = ai|selectattr('ai_class_name','equalto',k.name)|list|length %}
+          <div style="display:grid;grid-template-columns:1fr 34px;gap:8px;align-items:center;margin-bottom:8px">
+            <div><div class="small" style="display:flex;justify-content:space-between"><span class="cls"><span class="dot" style="background:{{ k.color }}"></span>{{ k.en }}</span></div>
+              <div style="height:8px;background:var(--line-2);border-radius:4px;margin-top:4px"><div style="height:8px;border-radius:4px;background:{{ k.color }};width:{{ (n / (ai|length) * 100) if ai else 0 }}%"></div></div></div>
+            <b class="num right">{{ n }}</b></div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Run details</h3></div>
+      <div class="panel-body">
+        <dl class="specs" style="grid-template-columns:130px 1fr">
+          <dt>Model</dt><dd>{{ insp.model_name }}</dd>
+          <dt>Confidence ≥</dt><dd>{{ "%.2f"|format(insp.conf_threshold) }}</dd>
+          <dt>Blade masking</dt><dd>{{ "Applied" if insp.mask_applied else ("Requested, no model" if insp.mask_enabled else "Off") }}</dd>
+          <dt>Frames analyzed</dt><dd>{{ insp.frames|length }}</dd>
+          {% if insp.media|selectattr('kind','equalto','video')|list %}<dt>Frame interval</dt><dd>{{ insp.frame_interval_s }} s</dd>{% endif %}
+          <dt>Processing time</dt><dd>{{ insp.processing_seconds }} s</dd>
+          <dt>VLM check</dt><dd>{% if insp.vlm_status in ("done", "partial") %}{{ insp.vlm_model }}: {{ insp.vlm_frames_checked }} frame{{ 's' if insp.vlm_frames_checked != 1 }}, {{ insp.findings|selectattr('vlm_verdict','in',['confirmed','relabeled'])|list|length }} confirmed, {{ insp.findings|selectattr('vlm_verdict','equalto','rejected')|list|length }} disputed, {{ insp.vlm_added or 0 }} added{% elif insp.vlm_status == "running" %}Running{% elif insp.vlm_status == "failed" %}<span style="color:var(--bad)">Failed</span>{% if insp.vlm_note %}<div class="small muted">{{ insp.vlm_note }}</div>{% endif %}{% else %}Off{% endif %}</dd>
+          <dt>Drone</dt><dd>{{ insp.drone_model or "-" }}</dd>
+          <dt>Weather</dt><dd>{{ insp.weather or "-" }}</dd>
+          <dt>Uploaded by</dt><dd>{{ insp.created_by.name if insp.created_by else "-" }}</dd>
+        </dl>
+        {% if insp.notes %}<p class="small" style="margin:12px 0 0"><b>Notes:</b> {{ insp.notes }}</p>{% endif %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Media &amp; downloads</h3></div>
+      <ul class="feed">{% for m in insp.media %}
+        <li style="grid-template-columns:30px 1fr auto"><span>{{ icon("video" if m.kind == "video" else "image") }}</span><div class="small"><b>{{ m.original_name }}</b>
+          <time>{{ m.width }}×{{ m.height }}{% if m.duration_s %} · {{ m.duration_s }} s at {{ m.fps|round(1) }} fps{% endif %}</time></div>
+          <a class="btn btn-sm" href="{{ url_for('inspections.download_original', insp_id=insp.id, mid=m.id) }}" title="Download the original file">{{ icon("download") }}Original</a></li>
+      {% endfor %}</ul>
+      <div class="panel-body" style="border-top:1px solid var(--line-2)">
+        <a class="btn btn-sm btn-primary" href="{{ url_for('inspections.download_zip', insp_id=insp.id) }}">{{ icon("download") }}Download all (originals + annotated + CSV)</a>
+      </div>
+    </section>
+    <div class="btn-row">
+      {% if perm.can_manage(insp) %}
+      <form method="post" action="{{ url_for('inspections.rerun', insp_id=insp.id) }}" data-confirm="Run the analysis again? All findings and review decisions for this inspection will be cleared.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">{{ icon("refresh") }}Re-run analysis</button></form>
+      {% endif %}
+      {% if perm.can_delete(insp) %}
+      <form method="post" action="{{ url_for('inspections.delete', insp_id=insp.id) }}" data-confirm="Delete {{ insp.code }} with all its media, findings and report? This can't be undone.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-danger">{{ icon("trash") }}Delete</button></form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if insp.is_busy %}
+<script>
+(function poll() {
+  fetch("{{ url_for('inspections.status', insp_id=insp.id) }}").then(r => r.json()).then(s => {
+    document.getElementById("prog-bar").style.width = s.progress + "%";
+    document.getElementById("prog-msg").textContent = s.message;
+    if (s.status === "queued" || s.status === "processing") setTimeout(poll, 1200);
+    else location.reload();
+  }).catch(() => setTimeout(poll, 3000));
+})();
+</script>
+{% elif insp.vlm_status == "running" %}
+<script>
+(function poll() {
+  fetch("{{ url_for('inspections.status', insp_id=insp.id) }}").then(r => r.json()).then(s => {
+    if (s.vlm_status === "running") { document.getElementById("vlm-msg").textContent = s.message; setTimeout(poll, 2000); }
+    else location.reload();
+  }).catch(() => setTimeout(poll, 4000));
+})();
+</script>
+{% elif payload and payload.frames %}
+<script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+<script>
+const payload = {{ payload|tojson }};
+const allFrames = payload.frames.slice();
+let viewer;
+function build() {
+  const only = document.getElementById("only-hits").checked;
+  const showRej = document.getElementById("show-rej").checked;
+  const frames = only ? allFrames.filter(f => f.findings.some(id => showRej || payload.findings.find(x => x.id === id).status !== "rejected")) : allFrames;
+  viewer = new Viewer(document.getElementById("viewer"), { ...payload, frames: frames.length ? frames : allFrames }, {
+    showRejected: showRej,
+    onFrame: fr => { document.getElementById("dl-frame").href = `{{ url_for('inspections.detail', insp_id=insp.id) }}/frames/${fr.id}/annotated.jpg`; },
+  });
+  if (viewer.frame) document.getElementById("dl-frame").href = `{{ url_for('inspections.detail', insp_id=insp.id) }}/frames/${viewer.frame.id}/annotated.jpg`;
+}
+document.getElementById("only-hits").onchange = build;
+document.getElementById("show-rej").onchange = build;
+build();
+document.querySelectorAll("#ftable tbody tr").forEach(tr => tr.addEventListener("click", () => {
+  const id = +tr.dataset.id;
+  if (!viewer.frames.some(fr => fr.findings.includes(id)) || (!viewer.showRejected && viewer.findings.get(id).status === "rejected")) {
+    document.getElementById("only-hits").checked = false; document.getElementById("show-rej").checked = true; build();
+  }
+  viewer.showFinding(id);
+  document.getElementById("viewer").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+</script>
+{% endif %}
+{% endblock %}

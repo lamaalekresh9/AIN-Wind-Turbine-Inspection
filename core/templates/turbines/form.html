@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit " ~ t.code if t else "Add turbine" }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{{ url_for('turbines.index') }}">Turbines</a>{% if t %} / <a href="{{ url_for('turbines.detail', tid=t.id) }}">{{ t.code }}</a>{% endif %}</div>
+<div class="page-head"><div><h1>{{ "Edit " ~ t.code if t else "Add turbine" }}</h1></div></div>
+<form method="post" class="panel" style="max-width:860px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel-body">
+    <h3>Identity and location</h3>
+    <div class="grid-2">
+      <div class="field"><label for="code">Turbine ID</label><input id="code" name="code" type="text" required placeholder="e.g. DJ-WTG-07" value="{{ form.get('code') or '' }}"></div>
+      <div class="field"><label for="name">Name <span class="muted" style="font-weight:400">(optional)</span></label><input id="name" name="name" type="text" placeholder="e.g. Unit 7" value="{{ form.get('name') or '' }}"></div>
+      <div class="field"><label for="site">Site / wind farm</label><input id="site" name="site" type="text" required value="{{ form.get('site') or '' }}"></div>
+      <div class="field"><label for="region">Region</label><input id="region" name="region" type="text" placeholder="e.g. Al Jouf" value="{{ form.get('region') or '' }}"></div>
+      <div class="field"><label for="latitude">Latitude</label><input id="latitude" name="latitude" type="number" step="any" value="{{ form.get('latitude') if form.get('latitude') is not none else '' }}"></div>
+      <div class="field"><label for="longitude">Longitude</label><input id="longitude" name="longitude" type="number" step="any" value="{{ form.get('longitude') if form.get('longitude') is not none else '' }}"></div>
+    </div>
+    <h3 style="margin-top:8px">Specifications</h3>
+    <div class="grid-3">
+      <div class="field"><label for="manufacturer">Manufacturer</label><input id="manufacturer" name="manufacturer" type="text" value="{{ form.get('manufacturer') or '' }}"></div>
+      <div class="field"><label for="model">Model</label><input id="model" name="model" type="text" value="{{ form.get('model') or '' }}"></div>
+      <div class="field"><label for="commission_year">Commissioned</label><input id="commission_year" name="commission_year" type="number" min="1980" max="2100" value="{{ form.get('commission_year') or '' }}"></div>
+      <div class="field"><label for="hub_height_m">Hub height (m)</label><input id="hub_height_m" name="hub_height_m" type="number" step="any" value="{{ form.get('hub_height_m') or '' }}"></div>
+      <div class="field"><label for="rotor_diameter_m">Rotor diameter (m)</label><input id="rotor_diameter_m" name="rotor_diameter_m" type="number" step="any" value="{{ form.get('rotor_diameter_m') or '' }}"></div>
+      <div class="field"><label for="status">Status</label><select id="status" name="status">
+        {% for s in ["operational","maintenance","offline"] %}<option value="{{ s }}" {{ 'selected' if form.get('status') == s }}>{{ s|capitalize }}</option>{% endfor %}</select></div>
+    </div>
+    <div class="field"><label for="notes">Notes</label><textarea id="notes" name="notes">{{ form.get('notes') or '' }}</textarea></div>
+    {% if not t %}
+    <div class="field" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+      <label class="check" style="margin:0"><input type="checkbox" name="add_blades" value="1" {{ 'checked' if form.get('add_blades') }}> Create blades A, B and C</label>
+      <div style="width:200px"><label for="blade_length">Blade length (m)</label><input id="blade_length" name="blade_length" type="number" step="any" value="{{ form.get('blade_length') or '' }}"></div>
+    </div>
+    {% endif %}
+    <div class="btn-row"><button class="btn btn-primary">{{ "Save changes" if t else "Add turbine" }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('turbines.detail', tid=t.id) if t else url_for('turbines.index') }}">Cancel</a></div>
+  </div>
+</form>
+{% endblock %}

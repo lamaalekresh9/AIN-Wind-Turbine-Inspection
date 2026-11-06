@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}AI inspection for wind turbine blades{% endblock %}
+{% block public %}
+{% include "_pubnav.html" %}
+<section class="hero">
+  <div>
+    <span class="ar-tag">عين — منصة فحص شفرات توربينات الرياح</span>
+    <h1>Find blade damage before it grows.</h1>
+    <p class="lede">Ain reads drone photos and inspection videos of wind turbine blades, marks every visible defect, and waits for a qualified reviewer to approve each one before it writes the inspection report in Arabic.</p>
+    <div class="btn-row">
+      {% if current_user.is_authenticated %}
+      <a class="btn btn-signal btn-lg" href="{{ url_for('inspections.new') }}">Start an inspection</a>
+      {% else %}
+      <a class="btn btn-signal btn-lg" href="{{ url_for('auth.signup') }}">Create an account</a>
+      <a class="btn btn-lg" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.35)" href="{{ url_for('auth.login') }}">Sign in</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="hero-art" aria-hidden="true">
+    <svg viewBox="0 0 600 700" preserveAspectRatio="xMaxYMax meet">
+      <defs>
+        <linearGradient id="bl" x1="0" y1="0" x2="1" y2="0.3">
+          <stop offset="0" stop-color="#f6f8f9"/><stop offset=".55" stop-color="#e3eaee"/><stop offset="1" stop-color="#b9c7cf"/>
+        </linearGradient>
+      </defs>
+      <!-- distant turbines -->
+      <g stroke="#5f8796" stroke-width="2" fill="none" opacity=".55">
+        <path d="M120 300v260"/><g class="rotor" style="transform-origin:120px 300px;animation-duration:11s"><path d="M120 300 112 230M120 300l62 32M120 300l-56 38" stroke-width="3"/></g>
+        <path d="M230 360v200"/><g class="rotor" style="transform-origin:230px 360px;animation-duration:15s"><path d="M230 360l-4-58M230 360l50 26M230 360l-46 30" stroke-width="2.5"/></g>
+      </g>
+      <!-- blade close-up, as seen by the drone -->
+      <path d="M-10 640 Q 290 330 585 38 L 600 66 Q 330 410 120 720 L -10 720 Z" fill="url(#bl)"/>
+      <path d="M-10 640 Q 290 330 585 38" stroke="#fff" stroke-width="3" fill="none" opacity=".8"/>
+      <!-- defects -->
+      <path d="M300 372 l9 -6 l6 4 l10 -9 l7 3 l9 -8" stroke="#56636b" stroke-width="2" fill="none"/>
+      <g fill="#6c7a82"><circle cx="452" cy="205" r="3"/><circle cx="462" cy="214" r="2.2"/><circle cx="446" cy="219" r="2.5"/><circle cx="470" cy="201" r="1.8"/></g>
+      <!-- detections -->
+      <g class="reticle" style="transform-origin:323px 362px">
+        <rect x="284" y="336" width="78" height="50" fill="none" stroke="#eb6834" stroke-width="3"/>
+        <path d="M278 330h16M278 330v16M368 330h-16M368 330v16M278 392h16M278 392v-16M368 392h-16M368 392v-16" stroke="#f2b705" stroke-width="3"/>
+      </g>
+      <g class="reticle" style="transform-origin:458px 210px;animation-delay:.9s">
+        <rect x="432" y="188" width="52" height="42" fill="none" stroke="#1baf7a" stroke-width="3"/>
+      </g>
+      <g class="reticle-label" font-family="Barlow, sans-serif" font-weight="600" font-size="15">
+        <rect x="284" y="396" width="90" height="24" fill="#eb6834"/><text x="292" y="413" fill="#fff">crack 0.94</text>
+        <rect x="432" y="162" width="134" height="24" fill="#1baf7a"/><text x="440" y="179" fill="#fff">surface_eye 0.81</text>
+        <g transform="translate(250 470)">
+          <rect width="230" height="58" rx="4" fill="#0b2531" stroke="#f2b705"/>
+          <text x="14" y="24" fill="#f2b705" font-size="14">Awaiting reviewer</text>
+          <text x="14" y="44" fill="#fff" font-size="14" font-weight="500">2 findings on DJ-WTG-07, blade B</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section class="band" style="background:#fff">
+  <div class="band-inner problem">
+    <div>
+      <h2>Drones made blade inspection safe. Reviewing the footage is still slow.</h2>
+      <p>A single inspection flight produces hundreds of close-range images per turbine. Inspectors still scan them by eye for cracks and coating damage, and small defects are easy to miss on the hundredth frame.</p>
+      <p>Saudi Arabia is building out its wind capacity under Vision 2030, so the number of blades to inspect is growing faster than the number of qualified inspectors.</p>
+    </div>
+    <div>
+      <div class="stat-line"><b>3</b><span>visible defect types detected by the current model: cracks, hidden crazing, and surface eyes (pits and pinholes)</span></div>
+      <div class="stat-line"><b>69%</b><span>mAP@0.5 for the YOLO26l model behind this demo, measured on a grouped validation split (stricter than a random split)</span></div>
+      <div class="stat-line"><b>100%</b><span>of findings in a report are approved by a human reviewer first. Nothing is issued on the model's word alone.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="how">
+  <div class="band-inner">
+    <h2>How an inspection moves through Ain</h2>
+    <p class="intro">The reviewer stays in control. The report can't be generated until every finding has been decided.</p>
+    <div class="flow">
+      <div><span class="k">Step 1</span><b>Upload</b><span>Drone photos or a prerecorded video, tagged to a turbine and blade.</span></div>
+      <div><span class="k">Step 2</span><b>Detect</b><span>The model boxes each defect with its type and a confidence score.</span></div>
+      <div><span class="k">Step 3</span><b>Merge</b><span>The same defect seen across video frames becomes one finding.</span></div>
+      <div><span class="k">Step 4</span><b>Review</b><span>Accept, reject, correct, or mark uncertain. Every decision is logged.</span></div>
+      <div><span class="k">Step 5</span><b>Report</b><span>An Arabic report is written from approved findings only, with evidence images.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="band" style="background:#fff" id="features">
+  <div class="band-inner">
+    <h2>What's in the platform</h2>
+    <div class="features">
+      <div>{{ icon("box") }}<h3>Defect detection</h3><p>Bounding boxes, defect class, and confidence on every image, with an adjustable threshold.</p></div>
+      <div>{{ icon("video") }}<h3>Video inspections</h3><p>Frames are sampled at the interval you choose and duplicate detections are merged.</p></div>
+      <div>{{ icon("layers") }}<h3>Two-model cross-check</h3><p>A vision-language model double-checks every YOLO box, flags likely false alarms, and points out defects YOLO missed.</p></div>
+      <div>{{ icon("chat") }}<h3>Ask Ain</h3><p>Chat with an AI assistant about any inspection: what was found, why the models disagree, the risks and the next steps.</p></div>
+      <div>{{ icon("eye") }}<h3>Human verification</h3><p>Redraw boxes, change the class, set severity, or add defects the model missed.</p></div>
+      <div>{{ icon("arabic") }}<h3>Arabic reports</h3><p>A language model explains each approved defect: what it is, where, how serious, what happens if untreated, and what to do. Edit it, then export a right-to-left PDF.</p></div>
+      <div>{{ icon("camera") }}<h3>Live detection</h3><p>Run the model on a live camera, a playing video, or a single photo and watch the boxes appear.</p></div>
+      <div>{{ icon("turbine") }}<h3>Turbine records</h3><p>Organise turbines by site and blade, and see every inspection for each one.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-dark">
+  <div class="band-inner cta">
+    <div>
+      <h2>Run your first inspection</h2>
+      <p style="margin:0">Use the demo reviewer account or create your own.</p>
+    </div>
+    <a class="btn btn-signal btn-lg" href="{{ url_for('inspections.new') if current_user.is_authenticated else url_for('auth.signup') }}">{{ "Start an inspection" if current_user.is_authenticated else "Create an account" }}</a>
+  </div>
+</section>
+<footer class="footer">
+  <span>Ain · Senior project, {{ now_year }}</span>
+  <span>Decision support only. Ain doesn't certify structural safety or replace qualified inspectors.</span>
+</footer>
+{% endblock %}

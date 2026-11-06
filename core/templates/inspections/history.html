@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge %}
+{% block title %}{{ "My inspections" if current_user.role == "inspector" else ("Review queue" if args.status == "in_review" else ("Submitted inspections" if current_user.role == "reviewer" else "All inspections")) }}{% endblock %}
+{% block content %}
+{% set role = current_user.role %}
+<div class="page-head">
+  {% if role == "inspector" %}
+  <div><h1>My inspections</h1><p>Only the inspections you uploaded. Submit each one for human review when you've checked the AI results.</p></div>
+  {% elif args.status == "in_review" %}
+  <div><h1>Review queue</h1><p>Inspections submitted by inspectors and waiting for a Human Reviewer.</p></div>
+  {% elif role == "reviewer" %}
+  <div><h1>Submitted inspections</h1><p>Every inspection submitted for review, from all inspectors.</p></div>
+  {% else %}
+  <div><h1>All inspections</h1><p>Every inspection on the platform, including drafts that haven't been submitted.</p></div>
+  {% endif %}
+  {% if perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('inspections.new') }}">{{ icon("plus") }}New inspection</a>{% endif %}
+</div>
+<section class="panel">
+  <form class="filters" method="get">
+    <div class="f"><label for="q">Search</label><input id="q" name="q" type="search" placeholder="Code or title" value="{{ args.q or '' }}"></div>
+    <div class="f"><label for="turbine">Turbine</label><select id="turbine" name="turbine"><option value="">All turbines</option>
+      {% for t in turbines %}<option value="{{ t.id }}" {{ 'selected' if args.turbine == t.id|string }}>{{ t.code }}</option>{% endfor %}</select></div>
+    <div class="f"><label for="status">Status</label><select id="status" name="status"><option value="">Any status</option>
+      {% for s, l in statuses %}
+      <option value="{{ s }}" {{ 'selected' if args.status == s }}>{{ l }}</option>{% endfor %}</select></div>
+    {% if inspectors %}<div class="f"><label for="inspector">Inspector</label><select id="inspector" name="inspector"><option value="">All inspectors</option>
+      {% for u in inspectors %}<option value="{{ u.id }}" {{ 'selected' if args.inspector == u.id|string }}>{{ u.name }}</option>{% endfor %}</select></div>{% endif %}
+    <div class="f" style="min-width:130px"><label for="from">From</label><input id="from" name="from" type="date" value="{{ args['from'] or '' }}"></div>
+    <div class="f" style="min-width:130px"><label for="to">To</label><input id="to" name="to" type="date" value="{{ args.to or '' }}"></div>
+    <div class="btn-row"><button class="btn btn-primary" type="submit">Filter</button>{% if args %}<a class="btn btn-ghost" href="{{ url_for('inspections.history') }}">Clear</a>{% endif %}</div>
+  </form>
+  {% if page.items %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Code</th><th>Turbine / blade</th><th>Flight date</th><th>Media</th><th class="right">Approved / total</th><th>Status</th><th>Report</th><th>{{ "Uploaded" if role == "inspector" else "Inspector" }}</th></tr></thead>
+    <tbody>
+    {% for i in page.items %}{% set c = i.counts() %}
+      <tr>
+        <td><a class="code" href="{{ url_for('inspections.detail', insp_id=i.id) }}">{{ i.code }}</a>{% if i.title %}<div class="small muted">{{ i.title }}</div>{% endif %}</td>
+        <td>{{ i.turbine.code }}<div class="small muted">{{ i.blade.label if i.blade else "All blades" }}</div></td>
+        <td>{{ i.inspection_date|d }}</td>
+        <td class="small">{% set nv = i.media|selectattr('kind','equalto','video')|list|length %}{{ i.media|length - nv }} photo{{ 's' if i.media|length - nv != 1 }}{% if nv %}, {{ nv }} video{{ 's' if nv != 1 }}{% endif %}</td>
+        <td class="right num">{{ c.accepted }} / {{ c.total }}</td>
+        <td>{{ status_badge(i.status, i.status_label) }}</td>
+        <td>{% if i.report and perm.can_view_report(i) %}<a href="{{ url_for('reports.view', insp_id=i.id) }}">{{ status_badge(i.report.status, "Final" if i.report.status == "issued" else "Draft") }}</a>{% elif i.report %}<span class="muted small">Being prepared</span>{% else %}<span class="muted small">None</span>{% endif %}</td>
+        <td class="small">{{ i.created_by.name if i.created_by else "-" }}<div class="muted">{{ i.created_at|ago }}</div></td>
+      </tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% if page.pages > 1 %}
+  <div class="pager">
+    <span class="muted">Page {{ page.page }} of {{ page.pages }}</span>
+    {% set a = args.to_dict() %}{% if a.page %}{% set _ = a.pop('page') %}{% endif %}
+    {% if page.has_prev %}<a class="btn btn-sm" href="{{ url_for('inspections.history', page=page.prev_num, **a) }}">Previous</a>{% endif %}
+    {% if page.has_next %}<a class="btn btn-sm" href="{{ url_for('inspections.history', page=page.next_num, **a) }}">Next</a>{% endif %}
+  </div>{% endif %}
+  {% else %}
+  <div class="empty"><h3>{{ "No inspections match" if args else ("No inspections yet" if role == "inspector" else "Nothing submitted yet") }}</h3>
+    <p>{{ "Try different filters." if args else ("Upload drone images or a video to run your first analysis." if role == "inspector" else "Inspections appear here once an inspector submits them for review.") }}</p>
+    {% if not args and perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('inspections.new') }}">Start an inspection</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

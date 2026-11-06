@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge %}
+{% from "dashboards/_macros.html" import by_class_panel, per_week_panel, review_split_panel %}
+{% block title %}Admin dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Admin dashboard</h1><p>Platform activity, users and the health of the AI services.</p></div>
+  <div class="btn-row">
+    <a class="btn" href="{{ url_for('admin.settings') }}">{{ icon("cpu") }}Settings</a>
+    <a class="btn btn-primary" href="{{ url_for('admin.create_user') }}">{{ icon("plus") }}Add user</a>
+  </div>
+</div>
+
+<div class="metrics">
+  <a class="metric" href="{{ url_for('admin.users') }}"><div class="v">{{ users_by_role.values()|sum }}</div><div class="l">Users{% if inactive %}, {{ inactive }} deactivated{% endif %}</div></a>
+  <a class="metric" href="{{ url_for('inspections.history') }}"><div class="v">{{ total_insp }}</div><div class="l">Inspections</div></a>
+  <a class="metric {{ 'alert' if status_rows|selectattr(0,'equalto','in_review')|map(attribute=2)|first }}" href="{{ url_for('inspections.history', status='in_review') }}"><div class="v">{{ status_rows|selectattr(0,'equalto','in_review')|map(attribute=2)|first }}</div><div class="l">Pending review{% if oldest_pending and oldest_pending.submitted_at %}, oldest {{ oldest_pending.submitted_at|ago }}{% endif %}</div></a>
+  <a class="metric" href="{{ url_for('reports.index') }}"><div class="v">{{ reports_issued }}</div><div class="l">Final reports issued</div></a>
+  <a class="metric" href="{{ url_for('turbines.index') }}"><div class="v">{{ turbines }}</div><div class="l">Turbines</div></a>
+</div>
+
+<div class="cols-even" style="margin-bottom:18px">
+  <section class="panel">
+    <div class="panel-head"><h3>Inspections by status</h3></div>
+    <div class="panel-body">
+      {% set mx = (status_rows|map(attribute=2)|max) or 1 %}
+      {% for s, label, n in status_rows %}
+      <a href="{{ url_for('inspections.history', status=s) }}" style="display:grid;grid-template-columns:130px 1fr 34px;gap:10px;align-items:center;margin-bottom:8px;text-decoration:none;color:inherit;font-size:14px">
+        <span>{{ label }}</span><span style="height:10px;border-radius:0 4px 4px 0;background:{{ 'var(--bad)' if s in ('rejected','failed') else ('var(--ok)' if s in ('reviewed','reported') else 'var(--navy-3)') }};width:{{ (n / mx * 100)|round }}%;min-width:{{ 2 if n else 0 }}px"></span><b class="num right">{{ n }}</b></a>
+      {% endfor %}
+      <p class="small muted" style="margin:10px 0 0">Inspection decisions: {{ decisions.get('approved', 0) }} approved, {{ decisions.get('rejected', 0) }} rejected.</p>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h3>Users by role</h3><a class="small" href="{{ url_for('admin.users') }}">Manage users</a></div>
+    <div class="tally" style="grid-template-columns:repeat(3,1fr)">
+      {% for r in ("inspector", "reviewer", "admin") %}<a href="{{ url_for('admin.users', role=r) }}" style="text-decoration:none;color:inherit"><div><b>{{ users_by_role.get(r, 0) }}</b><span>{{ role_labels[r] }}s</span></div></a>{% endfor %}
+    </div>
+    <div class="panel-body" style="border-top:1px solid var(--line-2)">
+      <dl class="specs" style="grid-template-columns:140px 1fr">
+        <dt>YOLO model</dt><dd>{{ config.MODEL_PATH.name }} · {{ config.MODEL_IMGSZ }} px · conf {{ config.DEFAULT_CONF }}</dd>
+        <dt>VLM / LLM</dt><dd>{% if ai.configured %}{{ ai.label }} {{ ai.model }}{% else %}<span style="color:var(--warn)">No API key (offline templates)</span>{% endif %}</dd>
+        <dt>VLM check</dt><dd>{{ "On" if config.VLM_ENABLED else "Off" }}</dd>
+        <dt>Sign-up</dt><dd>{{ "Open (new users are Inspectors)" if config.ALLOW_SIGNUP else "Closed" }}</dd>
+      </dl>
+    </div>
+  </section>
+</div>
+
+<div class="cols-even" style="margin-bottom:18px">
+  <section class="panel">
+    <div class="panel-head"><h3>Most active inspectors</h3></div>
+    {% if per_inspector %}<div class="table-wrap"><table class="t"><tbody>
+      {% for u, n in per_inspector %}<tr><td>{{ u.name }}<div class="small muted">{{ u.role_label }}</div></td><td class="right num">{{ n }} inspection{{ 's' if n != 1 }}</td>
+        <td class="right"><a class="small" href="{{ url_for('inspections.history', inspector=u.id) }}">View</a></td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty small">No inspections yet.</div>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h3>Review decisions by reviewer</h3></div>
+    {% if per_reviewer %}<div class="table-wrap"><table class="t"><tbody>
+      {% for u, n in per_reviewer %}<tr><td>{{ u.name }}<div class="small muted">{{ u.role_label }}</div></td><td class="right num">{{ n }} review{{ 's' if n != 1 }} completed</td></tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty small">No reviews completed yet.</div>{% endif %}
+  </section>
+</div>
+
+<div class="cols" style="margin-bottom:18px">
+  <section class="panel">
+    <div class="panel-head"><h3>Recent activity</h3><a class="small" href="{{ url_for('admin.audit_log') }}">Full system log</a></div>
+    {% if activity %}<ul class="feed">{% for a in activity %}
+      <li><span class="avatar">{{ a.user.initials if a.user else "AI" }}</span>
+        <div><b>{{ a.user.name if a.user else "System" }}</b>{% if a.user %} <span class="muted small">({{ a.user.role_label }})</span>{% endif %} {{ action_label(a.action) }}
+          {% if a.inspection_id %}<a href="{{ url_for('inspections.detail', insp_id=a.inspection_id) }}">INS #{{ a.inspection_id }}</a>{% endif %}
+          <time>{{ a.created_at|ago }}</time></div></li>
+    {% endfor %}</ul>{% else %}<div class="empty"><p>Actions across the platform will appear here.</p></div>{% endif %}
+  </section>
+  {{ review_split_panel(charts.review) }}
+</div>
+
+<div class="cols-even">
+  {{ by_class_panel(charts) }}
+  {{ per_week_panel(charts) }}
+</div>
+{% endblock %}
+{% block scripts %}{% include "dashboards/_charts.html" %}{% endblock %}

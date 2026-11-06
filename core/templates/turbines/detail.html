@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge %}
+{% block title %}{{ t.code }}{% endblock %}
+{% macro blade_fields(b) %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if b %}<input type="hidden" name="blade_id" value="{{ b.id }}">{% endif %}
+  <div class="grid-2" style="gap:0 10px">
+    <div class="field"><label>Position</label><input name="position" type="text" required value="{{ b.position if b else '' }}" placeholder="A"></div>
+    <div class="field"><label>Serial</label><input name="serial" type="text" value="{{ b.serial or '' if b else '' }}"></div>
+    <div class="field"><label>Length (m)</label><input name="length_m" type="number" step="any" value="{{ b.length_m if b and b.length_m is not none else '' }}"></div>
+    <div class="field"><label>Installed</label><input name="install_year" type="number" value="{{ b.install_year or '' if b else '' }}"></div>
+  </div>
+  <div class="field"><label>Material</label><input name="material" type="text" value="{{ b.material or '' if b else '' }}"></div>
+  <div class="field"><label>Manufacturer</label><input name="manufacturer" type="text" value="{{ b.manufacturer or '' if b else '' }}"></div>
+  <div class="field"><label>Notes</label><textarea name="notes" style="min-height:60px">{{ b.notes or '' if b else '' }}</textarea></div>
+{% endmacro %}
+{% block content %}
+<div class="crumbs"><a href="{{ url_for('turbines.index') }}">Turbines</a> / {{ t.site }}</div>
+<div class="page-head">
+  <div><h1>{{ t.code }}{% if t.name %} <span class="muted" style="font-weight:500">{{ t.name }}</span>{% endif %}</h1>
+    <p>{{ t.site }}{{ ", " ~ t.region if t.region }} · {{ status_badge(t.status) }}</p></div>
+  <div class="btn-row">
+    {% if perm.can_create() %}<a class="btn" href="{{ url_for('turbines.edit', tid=t.id) }}">{{ icon("edit") }}Edit</a>{% endif %}
+    {% if current_user.is_admin and not has_any %}
+    <form method="post" action="{{ url_for('turbines.delete', tid=t.id) }}" data-confirm="Delete turbine {{ t.code }} and its blades?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger">{{ icon("trash") }}Delete</button></form>
+    {% endif %}
+    {% if perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('inspections.new', turbine=t.id) }}">{{ icon("upload") }}New inspection</a>{% endif %}
+  </div>
+</div>
+
+<div class="cols">
+  <div class="stack">
+    <section class="panel" id="blades">
+      <div class="panel-head"><h2>Blades</h2><span class="muted small">Approved defects across all inspections</span></div>
+      <div class="panel-body">
+        <div class="blades">
+          {% for b in t.blades %}
+          <div class="blade">
+            <h4><span>Blade {{ b.position }}</span><span class="badge {{ 'b-high' if per_blade.get(b.id, 0) else 'b-low' }}">{{ per_blade.get(b.id, 0) }} defect{{ 's' if per_blade.get(b.id, 0) != 1 }}</span></h4>
+            <div class="small muted">{{ b.serial or "No serial" }}</div>
+            <div class="small">{{ b.length_m ~ " m" if b.length_m else "" }}{{ " · " ~ b.material if b.material }}</div>
+            {% if perm.can_create() %}<details class="edit"><summary>Edit blade</summary>
+              <form method="post" action="{{ url_for('turbines.save_blade', tid=t.id) }}">{{ blade_fields(b) }}
+                <div class="btn-row"><button class="btn btn-sm btn-primary">Save</button></div></form>
+              <form method="post" action="{{ url_for('turbines.delete_blade', tid=t.id, bid=b.id) }}" data-confirm="Delete blade {{ b.position }}?" style="margin-top:6px">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost btn-danger">Delete blade</button></form>
+            </details>{% endif %}
+          </div>
+          {% endfor %}
+          {% if perm.can_create() %}          <div class="blade" style="border-style:dashed">
+            <h4>Add a blade</h4>
+            <details class="edit"><summary>{{ "Add blade" }}</summary>
+              <form method="post" action="{{ url_for('turbines.save_blade', tid=t.id) }}">{{ blade_fields(None) }}
+                <div class="btn-row"><button class="btn btn-sm btn-primary">Add blade</button></div></form>
+            </details>
+          </div>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Inspection records</h2></div>
+      {% if inspections %}
+      <div class="table-wrap"><table class="t">
+        <thead><tr><th>Code</th><th>Blade</th><th>Flight date</th><th class="right">Approved defects</th><th>Status</th><th>Report</th></tr></thead>
+        <tbody>{% for i in inspections %}{% set c = i.counts() %}
+          <tr><td><a class="code" href="{{ url_for('inspections.detail', insp_id=i.id) }}">{{ i.code }}</a></td>
+            <td>{{ i.blade.label if i.blade else "All" }}</td><td>{{ i.inspection_date|d }}</td>
+            <td class="right num">{{ c.accepted }}</td><td>{{ status_badge(i.status, i.status_label) }}</td>
+            <td>{% if i.report %}<a href="{{ url_for('reports.view', insp_id=i.id) }}">Open</a>{% else %}<span class="muted">-</span>{% endif %}</td></tr>
+        {% endfor %}</tbody></table></div>
+      {% else %}
+      <div class="empty"><p>{{ "No inspections for this turbine yet." if perm.can_create() else "No submitted inspections for this turbine." }}</p>{% if perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('inspections.new', turbine=t.id) }}">Start one</a>{% endif %}</div>
+      {% endif %}
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h3>Specifications</h3></div>
+    <div class="panel-body">
+      <dl class="specs">
+        <dt>Manufacturer</dt><dd>{{ t.manufacturer or "-" }}</dd>
+        <dt>Model</dt><dd>{{ t.model or "-" }}</dd>
+        <dt>Hub height</dt><dd>{{ t.hub_height_m ~ " m" if t.hub_height_m else "-" }}</dd>
+        <dt>Rotor diameter</dt><dd>{{ t.rotor_diameter_m ~ " m" if t.rotor_diameter_m else "-" }}</dd>
+        <dt>Commissioned</dt><dd>{{ t.commission_year or "-" }}</dd>
+        <dt>Coordinates</dt><dd>{% if t.latitude is not none and t.longitude is not none %}<a href="https://www.openstreetmap.org/?mlat={{ t.latitude }}&mlon={{ t.longitude }}#map=13/{{ t.latitude }}/{{ t.longitude }}" target="_blank" rel="noopener">{{ "%.4f"|format(t.latitude) }}, {{ "%.4f"|format(t.longitude) }}</a>{% else %}-{% endif %}</dd>
+        <dt>Registered</dt><dd>{{ t.created_at|d }}</dd>
+      </dl>
+      {% if t.notes %}<p class="small" style="margin:14px 0 0">{{ t.notes }}</p>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

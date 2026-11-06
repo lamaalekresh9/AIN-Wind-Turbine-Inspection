@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Model & system{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Model &amp; system</h1><p>What the platform is running. Change these values at the top of <code>app.py</code> and restart the server.</p></div></div>
+<div class="cols-even">
+  <section class="panel">
+    <div class="panel-head"><h2>Defect detection model</h2>{{ '<span class="badge b-accepted">Loaded</span>'|safe if model_exists else '<span class="badge b-failed">Missing</span>'|safe }}</div>
+    <div class="panel-body">
+      <dl class="specs">
+        <dt>File</dt><dd><code>{{ model_path.name }}</code>{% if model_size %} ({{ model_size }} MB){% endif %}</dd>
+        <dt>Device</dt><dd>{{ cfg.MODEL_DEVICE or "Auto (GPU if available)" }}</dd>
+        <dt>Input size</dt><dd>{{ cfg.MODEL_IMGSZ }} px</dd>
+        <dt>Default confidence</dt><dd>{{ cfg.DEFAULT_CONF }}</dd>
+        <dt>NMS IoU</dt><dd>{{ cfg.NMS_IOU }}</dd>
+        <dt>Max detections</dt><dd>{{ cfg.MAX_DETECTIONS }} per image</dd>
+        <dt>Classes</dt><dd>{% for c in classes %}<div class="cls" style="margin-right:12px"><span class="dot" style="background:{{ c.color }}"></span>{{ c.name }} <span class="ar" style="font-size:14px">{{ c.ar }}</span></div>{% endfor %}</dd>
+      </dl>
+      <p class="small muted" style="margin:14px 0 0">To swap models, replace <code>models/best.pt</code> or change <code>MODEL_PATH</code> in <code>app.py</code>. Class names are read from the model, so new classes appear automatically.</p>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>VLM and LLM ({{ ai.label }})</h2>{{ '<span class="badge b-accepted">Key set</span>'|safe if ai.configured else '<span class="badge b-in_review">No key</span>'|safe }}</div>
+    <div class="panel-body">
+      <dl class="specs">
+        <dt>Model</dt><dd>{{ ai.model if ai.provider != "none" else "-" }}</dd>
+        <dt>Requests / minute</dt><dd>{{ ai.rpm }}</dd>
+        <dt>VLM cross-check</dt><dd>{{ "On" if cfg.VLM_ENABLED else "Off" }}{% if cfg.VLM_ENABLED %} · weight {{ cfg.VLM_WEIGHT }} · threshold {{ cfg.VLM_MIN_FUSED }}{% if cfg.VLM_AUTO_REJECT %} · auto-reject{% endif %}{% if cfg.VLM_ADD_MISSED %} · adds missed{% endif %} · max {{ cfg.VLM_MAX_FRAMES }} frames{% endif %}</dd>
+        <dt>LLM report</dt><dd>{{ "On" if cfg.LLM_REPORT_ENABLED else "Off (templates)" }}{% if cfg.LLM_REPORT_ENABLED %} · up to {{ cfg.REPORT_MAX_IMAGES }} evidence images{% endif %}</dd>
+      </dl>
+      <form method="post" action="{{ url_for('admin.ai_test') }}" style="margin-top:14px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-primary">Test AI connection</button>
+        <span class="hint">Sends one small image to {{ ai.model }} and shows the exact answer or error.</span>
+      </form>
+      {% if not ai.configured %}<p class="small" style="margin:14px 0 0">Put your key in <code>.env</code> as <code>{{ "OPENAI_API_KEY" if ai.provider == "openai" else "GEMINI_API_KEY" }}=...</code> and restart. Without a key, inspections run on YOLO only and reports use the Arabic templates.</p>{% endif %}
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Video and duplicate merging</h2></div>
+    <div class="panel-body"><dl class="specs">
+      <dt>Default interval</dt><dd>{{ cfg.DEFAULT_FRAME_INTERVAL }} s</dd>
+      <dt>Max frames / video</dt><dd>{{ cfg.MAX_FRAMES_PER_VIDEO }}</dd>
+      <dt>Merge if IoU ≥</dt><dd>{{ cfg.DEDUP_IOU }}</dd>
+      <dt>or centres within</dt><dd>{{ (cfg.DEDUP_CENTER_DIST * 100)|round(1) }}% of the frame</dd>
+      <dt>Max frame gap</dt><dd>{{ cfg.DEDUP_MAX_GAP }} sampled frames</dd>
+    </dl></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Blade masking</h2>{{ '<span class="badge b-accepted">Ready</span>'|safe if seg_ready else '<span class="badge">Passthrough</span>'|safe }}</div>
+    <div class="panel-body small">
+      {% if seg_ready %}<p style="margin:0">Using <code>{{ seg }}</code>. Background is removed before detection when an inspector turns masking on.</p>
+      {% else %}<p style="margin:0">No segmentation model configured. Train a YOLO-seg model on blade masks and set <code>BLADE_SEG_MODEL_PATH</code> in <code>app.py</code>. Until then the toggle is recorded but images are analyzed unmasked.</p>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

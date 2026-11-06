@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge, turbine_svg %}
+{% block title %}Turbines{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Turbines</h1><p>{{ total }} turbine{{ 's' if total != 1 }} grouped by site. Open one to manage its blades and see its inspections.</p></div>
+  {% if perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('turbines.new') }}">{{ icon("plus") }}Add turbine</a>{% endif %}
+</div>
+<form class="panel filters" method="get" style="margin-bottom:22px;border-bottom:1px solid var(--line)">
+  <div class="f"><label for="q">Search</label><input id="q" type="search" name="q" placeholder="Turbine ID, site or region" value="{{ args.q or '' }}"></div>
+  <div class="f" style="max-width:220px"><label for="status">Status</label><select id="status" name="status"><option value="">Any status</option>
+    {% for s in ["operational","maintenance","offline"] %}<option value="{{ s }}" {{ 'selected' if args.status == s }}>{{ s|capitalize }}</option>{% endfor %}</select></div>
+  <div class="btn-row"><button class="btn btn-primary">Filter</button>{% if args %}<a class="btn btn-ghost" href="{{ url_for('turbines.index') }}">Clear</a>{% endif %}</div>
+</form>
+{% for site, ts in sites.items() %}
+<section class="site">
+  <div class="site-h"><h2>{{ site }}</h2><span class="muted">{{ ts[0].region or "" }} · {{ ts|length }} turbine{{ 's' if ts|length != 1 }}</span></div>
+  <div class="tgrid">
+    {% for t in ts %}{% set s = stats.get(t.id, {}) %}
+    <a class="tcard" href="{{ url_for('turbines.detail', tid=t.id) }}">
+      {{ turbine_svg() }}
+      <div>
+        <h3>{{ t.code }}</h3>
+        <div class="small muted">{{ t.manufacturer or "" }} {{ t.model or "" }}</div>
+        <div style="margin-top:6px">{{ status_badge(t.status) }}</div>
+        <div class="facts"><span><b>{{ t.blades|length }}</b>blades</span><span><b>{{ s.get('insp', 0) }}</b>inspections</span><span><b>{{ s.get('defects', 0) }}</b>defects</span></div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% else %}
+<section class="panel"><div class="empty"><h3>{{ "No turbines match" if args else "No turbines yet" }}</h3>
+  <p>{{ "Try another search." if args else "Register a turbine with its site and blades to start filing inspections." }}</p>
+  {% if not args and perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('turbines.new') }}">Add turbine</a>{% endif %}</div></section>
+{% endfor %}
+{% endblock %}

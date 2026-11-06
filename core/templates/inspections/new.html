@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}New inspection{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>New inspection</h1><p>Upload drone photos or a prerecorded video of one turbine. Analysis starts as soon as you submit.</p></div></div>
+
+{% if not turbines %}
+<section class="panel"><div class="empty"><h3>Add a turbine first</h3><p>Inspections are filed under a turbine and blade.</p>
+  <a class="btn btn-primary" href="{{ url_for('turbines.new') }}">{{ icon("plus") }}Add a turbine</a></div></section>
+{% else %}
+<form method="post" enctype="multipart/form-data" id="new-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="cols">
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-head"><h2>Media</h2><span class="muted small">JPG, PNG, BMP, WEBP · MP4, MOV, AVI, MKV</span></div>
+        <div class="panel-body">
+          <label class="drop" id="drop" for="media">
+            {{ icon("upload") }}
+            <b>Drop images or a video here, or browse</b>
+            <span class="muted">You can mix photos and videos in one inspection.</span>
+          </label>
+          <input id="media" name="media" type="file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp,.mp4,.mov,.avi,.mkv,image/*,video/*" class="sr-only">
+          <ul class="files" id="files"></ul>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Inspection details</h2></div>
+        <div class="panel-body">
+          <div class="grid-2">
+            <div class="field"><label for="turbine_id">Turbine</label>
+              <select id="turbine_id" name="turbine_id" required>
+                <option value="">Choose a turbine</option>
+                {% for t in turbines %}<option value="{{ t.id }}" {{ 'selected' if form.turbine_id|string == t.id|string }}>{{ t.code }} · {{ t.site }}</option>{% endfor %}
+              </select></div>
+            <div class="field"><label for="blade_id">Blade</label>
+              <select id="blade_id" name="blade_id" data-selected="{{ form.blade_id or '' }}"><option value="">All blades / not specified</option></select></div>
+          </div>
+          <div class="field"><label for="title">Title <span class="muted" style="font-weight:400">(optional)</span></label>
+            <input id="title" name="title" type="text" placeholder="e.g. Quarterly leading-edge check" value="{{ form.title or '' }}"></div>
+          <div class="grid-3">
+            <div class="field"><label for="inspection_date">Flight date</label><input id="inspection_date" name="inspection_date" type="date" value="{{ form.inspection_date or '' }}"></div>
+            <div class="field"><label for="drone_model">Drone</label><input id="drone_model" name="drone_model" type="text" placeholder="e.g. DJI Matrice 350" value="{{ form.drone_model or '' }}"></div>
+            <div class="field"><label for="operator_name">Pilot / operator</label><input id="operator_name" name="operator_name" type="text" value="{{ form.operator_name or current_user.name }}"></div>
+          </div>
+          <div class="field"><label for="weather">Weather and light</label><input id="weather" name="weather" type="text" placeholder="e.g. Clear, wind 6 m/s, midday sun" value="{{ form.weather or '' }}"></div>
+          <div class="field"><label for="notes">Notes for the reviewer</label><textarea id="notes" name="notes" placeholder="Anything the reviewer should know about this flight">{{ form.notes or '' }}</textarea></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack" style="position:sticky;top:16px">
+      <section class="panel">
+        <div class="panel-head"><h3>Analysis settings</h3></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="conf">Confidence threshold</label>
+            <div class="range-row"><input id="conf" name="conf_threshold" type="range" min="0.05" max="0.95" step="0.05" value="{{ form.conf_threshold or 0.25 }}"><output id="conf-out" class="num"></output></div>
+            <span class="hint">Lower finds more defects but adds false alarms for the reviewer.</span>
+          </div>
+          <div class="field">
+            <label for="interval">Video frame interval (seconds)</label>
+            <input id="interval" name="frame_interval_s" type="number" min="0.1" max="30" step="0.1" value="{{ form.frame_interval_s or 1.0 }}">
+            <span class="hint">One frame is analyzed every N seconds. Ignored for photos.</span>
+          </div>
+          <div class="field">
+            <label class="check"><input type="checkbox" name="vlm_enabled" value="1" {{ 'checked' if form.vlm_enabled and ai.vlm }} {{ 'disabled' if not ai.vlm }}>
+              <span>Cross-check with the VLM ({{ ai.label }})<span class="hint">{% if ai.vlm %}{{ ai.model }} confirms, rejects or relabels every YOLO box and flags defects YOLO missed. Adds about 8 seconds per image or frame.{% elif ai.provider in ("gemini", "openai") %}Add your {{ ai.label }} API key to the <code>.env</code> file to turn this on.{% else %}Turned off in <code>app.py</code>.{% endif %}</span></span></label>
+          </div>
+          <div class="field" style="margin:0">
+            <label class="check"><input type="checkbox" name="mask_enabled" value="1" {{ 'checked' if form.mask_enabled }}>
+              <span>Mask the blade before detection<span class="hint">{% if seg_ready %}Removes sky, tower and ground using the blade segmentation model.{% else %}No blade segmentation model is configured yet, so images will be analyzed unmasked. The setting is still recorded.{% endif %}</span></span></label>
+          </div>
+        </div>
+      </section>
+      <button class="btn btn-primary btn-lg" type="submit" id="submit">{{ icon("box") }}Upload and analyze</button>
+      <p class="small muted" style="margin:0">Large videos can take a few minutes. You can leave the page; the analysis keeps running.</p>
+    </div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const input = document.getElementById("media"), list = document.getElementById("files"), drop = document.getElementById("drop");
+  if (!input) return;
+  let files = new DataTransfer();
+  const vids = /\.(mp4|mov|avi|mkv)$/i;
+  const fmt = b => b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.ceil(b / 1e3) + " KB";
+  function render() {
+    list.innerHTML = "";
+    [...files.files].forEach((f, i) => {
+      const li = document.createElement("li");
+      const isVid = vids.test(f.name);
+      li.innerHTML = isVid ? `<span class="vid">VIDEO</span>` : `<img alt="">`;
+      if (!isVid) li.querySelector("img").src = URL.createObjectURL(f);
+      li.insertAdjacentHTML("beforeend", `<span class="nm"></span><span class="muted small">${fmt(f.size)}</span><button type="button" aria-label="Remove">×</button>`);
+      li.querySelector(".nm").textContent = f.name;
+      li.querySelector("button").onclick = () => { const n = new DataTransfer(); [...files.files].forEach((x, j) => j !== i && n.items.add(x)); files = n; input.files = files.files; render(); };
+      list.appendChild(li);
+    });
+  }
+  function add(fl) { [...fl].forEach(f => files.items.add(f)); input.files = files.files; render(); }
+  input.addEventListener("change", () => { const picked = [...input.files]; files = new DataTransfer(); add(picked); });
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => add(e.dataTransfer.files));
+
+  const conf = document.getElementById("conf"), out = document.getElementById("conf-out");
+  const sync = () => out.textContent = Number(conf.value).toFixed(2);
+  conf.addEventListener("input", sync); sync();
+
+  const tSel = document.getElementById("turbine_id"), bSel = document.getElementById("blade_id");
+  async function loadBlades() {
+    bSel.innerHTML = `<option value="">All blades / not specified</option>`;
+    if (!tSel.value) return;
+    const r = await fetch(`/api/turbines/${tSel.value}/blades`).then(r => r.json());
+    r.blades.forEach(b => bSel.insertAdjacentHTML("beforeend", `<option value="${b.id}">${b.label}${b.length ? ` · ${b.length} m` : ""}</option>`));
+    if (bSel.dataset.selected) { bSel.value = bSel.dataset.selected; bSel.dataset.selected = ""; }
+  }
+  tSel.addEventListener("change", loadBlades); loadBlades();
+
+  document.getElementById("new-form").addEventListener("submit", e => {
+    if (!input.files.length) { e.preventDefault(); Ain.toast("Add at least one image or video.", "error"); return; }
+    if (!tSel.value) { e.preventDefault(); Ain.toast("Choose the turbine you inspected.", "error"); return; }
+    const b = document.getElementById("submit"); b.disabled = true; b.textContent = "Uploading…";
+  });
+})();
+</script>
+{% endblock %}

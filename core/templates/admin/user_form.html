@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}{{ "Edit " ~ u.name if u else "Add user" }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{{ url_for('admin.users') }}">Users &amp; roles</a> / {{ u.name if u else "New user" }}</div>
+<div class="page-head"><div><h1>{{ "Edit " ~ u.name if u else "Add a user" }}</h1>{% if u %}<p>{{ u.role_label }} · member since {{ u.created_at|d }} · last sign-in {{ u.last_login_at|ago }}</p>{% endif %}</div></div>
+<form method="post" class="panel" style="max-width:760px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel-body">
+    <div class="grid-2">
+      <div class="field"><label for="name">Full name</label><input id="name" name="name" type="text" required value="{{ form.get('name') or '' }}"></div>
+      <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" required value="{{ form.get('email') or '' }}"></div>
+      <div class="field"><label for="organization">Organization</label><input id="organization" name="organization" type="text" value="{{ form.get('organization') or '' }}"></div>
+      <div class="field"><label for="job_title">Job title</label><input id="job_title" name="job_title" type="text" value="{{ form.get('job_title') or '' }}"></div>
+    </div>
+
+    <fieldset class="field" style="border:0;padding:0;margin:0 0 16px">
+      <legend style="font-weight:600;font-size:14px;margin-bottom:8px">Role</legend>
+      {% if u and u.role == "admin" %}
+        <p class="small" style="margin:0"><span class="badge role-badge-admin">Admin</span> Admin accounts are created with <code>flask --app app create-admin</code> and can't be changed here.</p>
+      {% else %}
+      <div class="role-choice">
+        {% for r in roles %}
+        <label class="role-card"><input type="radio" name="role" value="{{ r }}" {{ 'checked' if (form.get('role') or 'inspector') == r }} {{ 'disabled' if u and u.id == current_user.id }}>
+          <span><b>{{ role_labels[r] }}</b>
+            <span class="small muted">{{ "Uploads images and videos, runs YOLO and the VLM, sees only their own inspections, submits them for review." if r == "inspector" else "Sees every submitted inspection, accepts, rejects or edits findings, approves or rejects inspections, generates and issues the Arabic report." }}</span></span></label>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </fieldset>
+
+    <div class="grid-2">
+      <div class="field"><label for="password">{{ "New password" if u else "Temporary password" }}</label>
+        <input id="password" name="password" type="text" autocomplete="new-password" {{ '' if u else 'required' }}>
+        <span class="hint">{{ "Leave empty to keep the current password." if u else "8+ characters with a letter and a number. Share it securely." }}</span></div>
+      {% if u %}
+      <div class="field"><label for="active">Account status</label>
+        <select id="active" name="active" {{ 'disabled' if u.id == current_user.id }}>
+          <option value="1" {{ 'selected' if u.is_active }}>Active</option><option value="0" {{ 'selected' if not u.is_active }}>Deactivated (can't sign in)</option></select>
+        {% if u.id == current_user.id %}<input type="hidden" name="active" value="1">{% endif %}</div>
+      {% endif %}
+    </div>
+    <div class="btn-row"><button class="btn btn-primary">{{ "Save changes" if u else "Create account" }}</button><a class="btn btn-ghost" href="{{ url_for('admin.users') }}">Cancel</a></div>
+  </div>
+</form>
+{% endblock %}

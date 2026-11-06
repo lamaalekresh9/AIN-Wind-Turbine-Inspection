@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Support requests{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Support requests</h1><p>Messages sent from the Help center.</p></div></div>
+<section class="panel">
+  {% if tickets %}
+  <ul class="feed">{% for t in tickets %}
+    <li style="grid-template-columns:1fr auto;padding:16px 18px">
+      <div><b>{{ t.subject }}</b> <span class="badge {{ 'b-in_review' if t.status == 'open' else 'b-accepted' }}">{{ t.status|capitalize }}</span>
+        <div class="small muted">{{ t.name }} · <a href="mailto:{{ t.email }}">{{ t.email }}</a> · {{ t.topic or "General" }} · {{ t.created_at|ago }}</div>
+        <p style="margin:8px 0 0;white-space:pre-line">{{ t.message }}</p></div>
+      <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="id" value="{{ t.id }}">
+        <button class="btn btn-sm">{{ "Mark resolved" if t.status == "open" else "Reopen" }}</button></form>
+    </li>{% endfor %}</ul>
+  {% else %}<div class="empty"><h3>No support requests</h3><p>Messages sent from the Help center will show here.</p></div>{% endif %}
+</section>
+{% endblock %}

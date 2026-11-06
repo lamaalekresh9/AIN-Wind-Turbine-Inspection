@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, flashes %}
+{% block title %}Help center{% endblock %}
+
+{% macro body() %}
+<div class="cols">
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head"><h2>Run an inspection, start to finish</h2></div>
+      <div class="panel-body">
+        <ol class="howto">
+          {% for t, d in steps %}<li><div><b>{{ t }}</b><span class="muted">{{ d }}</span></div></li>{% endfor %}
+        </ol>
+      </div>
+    </section>
+    <section class="panel faq">
+      <div class="panel-head"><h2>Frequently asked questions</h2></div>
+      {% for q, a in faqs %}<details{% if loop.first %} open{% endif %}><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}
+    </section>
+  </div>
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head"><h3>Roles</h3></div>
+      <div class="panel-body">
+        <p><b>Inspector</b><br><span class="muted">Uploads media, manages turbines, views results and reports.</span></p>
+        <p><b>Reviewer</b><br><span class="muted">Everything an inspector does, plus approving findings and issuing Arabic reports.</span></p>
+        <p style="margin:0"><b>Admin</b><br><span class="muted">Manages users and roles, the audit log, and support requests.</span></p>
+      </div>
+    </section>
+    <section class="panel" id="contact">
+      <div class="panel-head"><h3>Contact support</h3></div>
+      <div class="panel-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="field"><label for="c-name">Name</label><input id="c-name" name="name" type="text" required value="{{ current_user.name if current_user.is_authenticated else '' }}"></div>
+          <div class="field"><label for="c-email">Email</label><input id="c-email" name="email" type="email" required value="{{ current_user.email if current_user.is_authenticated else '' }}"></div>
+          <div class="field"><label for="c-topic">Topic</label>
+            <select id="c-topic" name="topic"><option>Detection results</option><option>Arabic report</option><option>Account and access</option><option>Something else</option></select></div>
+          <div class="field"><label for="c-subj">Subject</label><input id="c-subj" name="subject" type="text" required></div>
+          <div class="field"><label for="c-msg">Message</label><textarea id="c-msg" name="message" required placeholder="Include the inspection code (e.g. INS-2026-0004) if it's about a specific inspection."></textarea></div>
+          <button class="btn btn-primary" type="submit">{{ icon("send") }}Send message</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="page-head"><div><h1>Help center</h1><p>How to use Ain, answers to common questions, and a way to reach support.</p></div></div>
+{{ body() }}
+{% endblock %}
+
+{% block public %}
+{% with light=True %}{% include "_pubnav.html" %}{% endwith %}
+<div class="main" style="max-width:1180px;margin:0 auto">
+  {{ flashes() }}
+  <div class="page-head"><div><h1>Help center</h1><p>How to use Ain, answers to common questions, and a way to reach support.</p></div></div>
+  {{ body() }}
+</div>
+{% endblock %}

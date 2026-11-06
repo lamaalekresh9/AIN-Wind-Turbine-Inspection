@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% block title %}Live detection{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Live detection</h1><p>Point a camera at a blade, play a drone video, or drop in a photo and see the model's boxes as it runs.</p></div>
+  <div class="conf-box">
+    <label for="conf">Confidence threshold</label>
+    <div class="range-row"><input id="conf" type="range" min="0.05" max="0.95" step="0.05" value="{{ default_conf }}"><output id="conf-out" class="num"></output></div>
+  </div>
+</div>
+
+<div class="seg" role="tablist" aria-label="Source">
+  <button type="button" role="tab" data-mode="camera" aria-selected="true">{{ icon("camera") }}Camera</button>
+  <button type="button" role="tab" data-mode="video" aria-selected="false">{{ icon("video") }}Video</button>
+  <button type="button" role="tab" data-mode="image" aria-selected="false">{{ icon("image") }}Image</button>
+</div>
+
+<div class="cols live">
+  <section class="panel">
+    <!-- camera -->
+    <div class="mode" data-pane="camera">
+      <div class="panel-head">
+        <div class="btn-row">
+          <select id="cam-select" aria-label="Camera" style="min-width:200px;width:auto"><option value="">Default camera</option></select>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="cam-start" type="button">{{ icon("play") }}Start camera</button>
+          <button class="btn" id="cam-stop" type="button" disabled>{{ icon("stop") }}Stop</button>
+          <button class="btn" id="cam-snap" type="button" disabled>{{ icon("download") }}Snapshot</button>
+          <button class="btn" id="cam-vlm" type="button" disabled data-ai="{{ 1 if ai.configured else 0 }}">{{ icon("eye") }}Check frame with VLM</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="live-stage" id="cam-stage">
+          <video id="cam-video" playsinline muted></video>
+          <canvas id="cam-overlay"></canvas>
+          <div class="live-empty" id="cam-empty">{{ icon("camera") }}<b>Camera is off</b><span>Select Start camera and allow access when the browser asks.</span></div>
+          <span class="live-badge" id="cam-live" hidden>Live</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- video -->
+    <div class="mode" data-pane="video" hidden>
+      <div class="panel-head">
+        <label class="check small" style="margin:0;font-weight:500"><input type="checkbox" id="vid-realtime" checked> Keep real-time pace (skips frames when the model is slower than the video)</label>
+        <div class="btn-row">
+          <button class="btn" id="vid-new" type="button">{{ icon("upload") }}New video</button>
+          <button class="btn" id="vid-replay" type="button" disabled>{{ icon("refresh") }}Replay</button>
+          <button class="btn" id="vid-stop" type="button" disabled>{{ icon("stop") }}Stop</button>
+          <button class="btn" id="vid-snap" type="button" disabled>{{ icon("download") }}Snapshot</button>
+          <button class="btn" id="vid-vlm" type="button" disabled data-ai="{{ 1 if ai.configured else 0 }}">{{ icon("eye") }}Check frame with VLM</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <label class="drop" id="vid-drop" for="vid-file">
+          {{ icon("video") }}<b>Drop a drone video here, or browse</b><span class="muted">MP4, MOV, AVI or MKV. Detection starts as soon as it's uploaded.</span>
+        </label>
+        <input id="vid-file" type="file" accept=".mp4,.mov,.avi,.mkv,video/*" class="sr-only">
+        <div id="vid-upload" hidden style="margin-top:12px"><div class="small muted" id="vid-upload-msg">Uploading…</div><div class="progress"><span id="vid-upload-bar"></span></div></div>
+        <div class="live-stage" id="vid-stage" hidden style="margin-top:14px">
+          <img id="vid-stream" alt="Video with live detections">
+          <span class="live-badge" id="vid-live">Live</span>
+        </div>
+        <div id="vid-timeline" hidden style="margin-top:10px">
+          <div class="progress"><span id="vid-bar"></span></div>
+          <div class="viewer-bar"><span id="vid-name"></span><span id="vid-time" class="num"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- image -->
+    <div class="mode" data-pane="image" hidden>
+      <div class="panel-head">
+        <span class="small muted" id="img-name">No image yet</span>
+        <div class="btn-row">
+          <button class="btn" id="img-pick" type="button">{{ icon("upload") }}Choose image</button>
+          <button class="btn btn-signal" id="img-vlm" type="button" disabled data-ai="{{ 1 if ai.configured else 0 }}">{{ icon("eye") }}Cross-check with VLM</button>
+          <button class="btn" id="img-snap" type="button" disabled>{{ icon("download") }}Download result</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <label class="drop" id="img-drop" for="img-file">
+          {{ icon("image") }}<b>Drop a blade photo here, or browse</b><span class="muted">JPG, PNG, BMP or WEBP. Change the threshold to re-run instantly.</span>
+        </label>
+        <input id="img-file" type="file" accept=".jpg,.jpeg,.png,.bmp,.webp,image/*" class="sr-only">
+        <div class="live-stage" id="img-stage" hidden><canvas id="img-canvas"></canvas></div>
+      </div>
+      <div id="img-chat" hidden style="border-top:1px solid var(--line-2)">
+        <div class="panel-head" style="border:0;padding-bottom:0"><h3>{{ icon("chat") }} Ask about this image</h3><span class="small muted">{% if ai.configured %}{{ ai.model }} sees the photo and the current detections{% else %}Needs an AI key in .env{% endif %}</span></div>
+        <div class="chat-log" id="live-log" style="max-height:420px;min-height:80px"></div>
+        <div class="suggest" id="live-suggest">
+          <button type="button">What did you find and how serious is it?</button>
+          <button type="button">Why did the VLM disagree with YOLO?</button>
+          <button type="button" dir="rtl">اشرح العيوب في هذه الصورة وما الصيانة المطلوبة؟</button>
+        </div>
+        <form class="chat-form" id="live-form">
+          <textarea id="live-q" rows="1" dir="auto" placeholder="Ask about this image… / اسأل عن هذه الصورة…" aria-label="Your question"></textarea>
+          <button class="btn btn-primary" id="live-send" {{ '' if ai.configured else 'disabled' }}>{{ icon("send") }}Ask</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <div class="tally" style="grid-template-columns:repeat(3,1fr)">
+        <div><b class="num" id="st-count">0</b><span>In view</span></div>
+        <div><b class="num" id="st-ms">–</b><span>Inference ms</span></div>
+        <div><b class="num" id="st-fps">–</b><span id="st-fps-l">Frames / s</span></div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Detections now</h3></div>
+      <div id="det-list" class="det-list"><div class="empty small">Nothing detected yet.</div></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>This session</h3><button class="btn btn-sm btn-ghost" id="reset-counts" type="button">Reset</button></div>
+      <div class="panel-body" id="session">
+        {% for c in classes %}
+        <div class="sess-row" data-cls="{{ c.name }}"><span class="cls"><span class="dot" style="background:{{ c.color }}"></span>{{ c.en }}</span><b class="num">0</b></div>
+        {% endfor %}
+        <p class="small muted" style="margin:10px 0 0">Total boxes seen across frames. The same defect counts again in every frame it appears in.</p>
+      </div>
+    </section>
+    <p class="small muted" style="margin:0">{% if ai.configured %}<b>VLM:</b> {{ ai.label }} {{ ai.model }}. Solid boxes = both models agree, dashed grey = the VLM disagrees, dashed purple = found only by the VLM. {% else %}Add a Gemini or OpenAI key to <code>.env</code> to cross-check frames with the VLM. {% endif %}Live detection is a quick check and nothing is saved. To get a reviewed Arabic report, <a href="{{ url_for('inspections.new') }}">start a new inspection</a>.</p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.LIVE = { classes: {{ classes|tojson }}, ai: {{ ai|tojson }} };</script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/live.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% from "macros.html" import icon, brand_mark, flashes %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Ain{% endblock %} · Ain</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated and not public_page %}
+{% set ep = request.endpoint or "" %}
+<div class="topbar">
+  <a class="brand" href="{{ url_for('dashboard.index') }}" style="padding:0">{{ brand_mark() }}<span class="brand-name">Ain</span></a>
+  <div style="display:flex;gap:4px">
+    <form method="post" action="{{ url_for('auth.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" aria-label="Sign out" title="Sign out">{{ icon("logout") }}</button></form>
+    <button type="button" aria-label="Open menu" onclick="document.querySelector('.sidebar').classList.toggle('open')">{{ icon("menu") }}</button>
+  </div>
+</div>
+<div class="shell">
+  <aside class="sidebar" onclick="if(event.target===this)this.classList.remove('open')">
+    <a class="brand" href="{{ url_for('dashboard.index') }}">{{ brand_mark() }}<span class="brand-name">Ain</span><span class="brand-ar">عين</span></a>
+    <div class="role-pill role-{{ current_user.role }}">{{ current_user.role_label }} workspace</div>
+    <nav class="nav" aria-label="Main">
+      {% set role = current_user.role %}
+      {% if role == "inspector" %}
+      <a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if ep == 'dashboard.index' }}">{{ icon("dashboard") }}My dashboard</a>
+      <a href="{{ url_for('inspections.new') }}" class="{{ 'active' if ep == 'inspections.new' }}">{{ icon("upload") }}New inspection</a>
+      <a href="{{ url_for('live.index') }}" class="{{ 'active' if ep.startswith('live.') }}">{{ icon("camera") }}Live detection</a>
+      <a href="{{ url_for('inspections.history') }}" class="{{ 'active' if (ep.startswith('inspections.') and ep != 'inspections.new') or ep.startswith('reports.') }}">{{ icon("history") }}My inspections{% if nav_counts.action %}<span class="count">{{ nav_counts.action }}</span>{% endif %}</a>
+      <a href="{{ url_for('turbines.index') }}" class="{{ 'active' if ep.startswith('turbines.') }}">{{ icon("turbine") }}Turbines</a>
+      {% elif role == "reviewer" %}
+      <a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if ep == 'dashboard.index' }}">{{ icon("dashboard") }}Review dashboard</a>
+      <a href="{{ url_for('inspections.history', status='in_review') }}" class="{{ 'active' if ep == 'inspections.history' and request.args.get('status') == 'in_review' }}">{{ icon("eye") }}Review queue{% if nav_counts.queue %}<span class="count">{{ nav_counts.queue }}</span>{% endif %}</a>
+      <a href="{{ url_for('inspections.history') }}" class="{{ 'active' if (ep.startswith('inspections.') and not (ep == 'inspections.history' and request.args.get('status') == 'in_review')) or (ep.startswith('reports.') and ep != 'reports.index') }}">{{ icon("history") }}Submitted inspections</a>
+      <a href="{{ url_for('reports.index') }}" class="{{ 'active' if ep == 'reports.index' }}">{{ icon("file") }}Reports</a>
+      <a href="{{ url_for('turbines.index') }}" class="{{ 'active' if ep.startswith('turbines.') }}">{{ icon("turbine") }}Turbines</a>
+      {% elif role == "admin" %}
+      <a href="{{ url_for('dashboard.index') }}" class="{{ 'active' if ep == 'dashboard.index' }}">{{ icon("dashboard") }}Admin dashboard</a>
+      <a href="{{ url_for('admin.users') }}" class="{{ 'active' if ep in ('admin.users', 'admin.create_user', 'admin.edit_user') }}">{{ icon("users") }}Users &amp; roles</a>
+      <a href="{{ url_for('inspections.history') }}" class="{{ 'active' if (ep.startswith('inspections.') and ep != 'inspections.new') or (ep.startswith('reports.') and ep != 'reports.index') }}">{{ icon("history") }}All inspections{% if nav_counts.queue %}<span class="count">{{ nav_counts.queue }}</span>{% endif %}</a>
+      <a href="{{ url_for('reports.index') }}" class="{{ 'active' if ep == 'reports.index' }}">{{ icon("file") }}Reports</a>
+      <a href="{{ url_for('admin.audit_log') }}" class="{{ 'active' if ep == 'admin.audit_log' }}">{{ icon("log") }}System logs</a>
+      <a href="{{ url_for('admin.settings') }}" class="{{ 'active' if ep == 'admin.settings' }}">{{ icon("cpu") }}Settings</a>
+      <a href="{{ url_for('admin.system') }}" class="{{ 'active' if ep == 'admin.system' }}">{{ icon("layers") }}Model &amp; AI status</a>
+      <a href="{{ url_for('admin.tickets') }}" class="{{ 'active' if ep == 'admin.tickets' }}">{{ icon("inbox") }}Support requests</a>
+      <div class="nav-group">Inspection tools</div>
+      <a href="{{ url_for('inspections.new') }}" class="{{ 'active' if ep == 'inspections.new' }}">{{ icon("upload") }}New inspection</a>
+      <a href="{{ url_for('live.index') }}" class="{{ 'active' if ep.startswith('live.') }}">{{ icon("camera") }}Live detection</a>
+      <a href="{{ url_for('turbines.index') }}" class="{{ 'active' if ep.startswith('turbines.') }}">{{ icon("turbine") }}Turbines</a>
+      {% endif %}
+      <div class="nav-group">Account</div>
+      <a href="{{ url_for('profile.index') }}" class="{{ 'active' if ep == 'profile.index' }}">{{ icon("user") }}Profile &amp; settings</a>
+      <a href="{{ url_for('main.help_center') }}" class="{{ 'active' if ep == 'main.help_center' }}">{{ icon("help") }}Help center</a>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="navlink">{{ icon("logout") }}Sign out</button>
+      </form>
+    </nav>
+    <div class="side-user">
+      <span class="avatar">{{ current_user.initials }}</span>
+      <div class="who"><b>{{ current_user.name }}</b><span>{{ current_user.role_label }}</span></div>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" title="Sign out" aria-label="Sign out">{{ icon("logout") }}</button>
+      </form>
+    </div>
+  </aside>
+  <main class="main" id="main">
+    {{ flashes() }}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% else %}
+{% block public %}{% endblock %}
+{% endif %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

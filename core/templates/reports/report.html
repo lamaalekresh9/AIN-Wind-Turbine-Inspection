@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, insp_header, status_badge %}
+{% block title %}{{ insp.code }} · Arabic report{% endblock %}
+{% block content %}
+{{ insp_header(insp, tab) }}
+
+{% if not report %}
+  {% if gate %}
+  <div class="gate blocked">{{ icon("lock") }}
+    <div style="flex:1"><b>The report is locked until the review is complete.</b><br>{{ gate }}</div>
+    {% if insp.status == "in_review" %}<a class="btn btn-signal" href="{{ url_for('inspections.review', insp_id=insp.id) }}">Go to review</a>{% endif %}
+  </div>
+  {% if perm.can_write_report(insp) %}
+  <form method="post" action="{{ url_for('reports.generate', insp_id=insp.id) }}" style="margin-top:12px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm" title="The server checks the approval gate again and refuses with a reason">{{ icon("arabic") }}Try generating anyway</button>
+  </form>
+  {% endif %}
+  {% else %}
+  <section class="panel">
+    <div class="panel-body" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:center">
+      <div>
+        <h2>Ready to write the Arabic report</h2>
+        <p style="margin-bottom:6px">For each of the {{ insp.approved_findings|length }} accepted finding{{ 's' if insp.approved_findings|length != 1 }}: the type of damage, where it is, how serious it could be, what could happen if it isn't treated, and recommended inspection and maintenance. Rejected and uncertain findings are left out.</p>
+        <p class="small muted" style="margin:0">{% if llm_on and ai.configured %}Writer: {{ ai.label }} {{ ai.model }}, using the accepted findings and their evidence images. Takes up to a minute.{% elif not llm_on %}LLM reports are turned off in <code>app.py</code>, so the offline Arabic templates will be used.{% else %}No AI key is set in <code>.env</code>, so the offline Arabic templates will be used.{% endif %}</p>
+      </div>
+      {% if perm.can_write_report(insp) %}
+      <form method="post" action="{{ url_for('reports.generate', insp_id=insp.id) }}" id="gen-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-signal btn-lg" id="gen-btn">{{ icon("arabic") }}Generate Arabic report</button>
+      </form>
+      {% else %}<p class="muted">A reviewer will generate and issue the report.</p>{% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+{% else %}
+{% set d = report.data %}
+<div class="panel" style="margin-bottom:16px">
+  <div class="panel-body" style="display:flex;gap:14px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:12px 16px">
+    <div class="small">{{ status_badge(report.status, "Issued" if report.status == "issued" else "Draft") }}
+      <span class="muted" style="margin-left:6px">{{ report.generation_note }}{% if report.status == 'issued' %} Issued by {{ report.issued_by.name }} on {{ report.issued_at|dt }}.{% else %} Last saved {{ report.updated_at|ago }}.{% endif %}</span></div>
+    <div class="btn-row">
+      <a class="btn btn-sm" href="{{ url_for('reports.pdf', insp_id=insp.id, inline=1) }}" target="_blank" rel="noopener">{{ icon("eye") }}Preview PDF</a>
+      <a class="btn btn-sm btn-primary" href="{{ url_for('reports.pdf', insp_id=insp.id) }}">{{ icon("download") }}Download PDF</a>
+      {% if report.status == 'draft' and perm.can_write_report(insp) %}
+        {% if not editing %}<a class="btn btn-sm" href="{{ url_for('reports.view', insp_id=insp.id, edit=1) }}">{{ icon("edit") }}Edit</a>{% endif %}
+        <form method="post" action="{{ url_for('reports.generate', insp_id=insp.id) }}" data-confirm="Regenerate the report? Your edits to the current draft will be replaced.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">{{ icon("refresh") }}Regenerate</button></form>
+        <form method="post" action="{{ url_for('reports.issue', insp_id=insp.id) }}" data-confirm="Issue this report? It will be locked and can't be edited or regenerated.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-signal">{{ icon("flag") }}Issue report</button></form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if editing %}
+<form method="post" action="{{ url_for('reports.save', insp_id=insp.id) }}" class="report-doc">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <p class="small muted" style="margin-top:0">Edit the Arabic text directly. Inspection details, evidence images and confidence values come from the database and can't be edited here.</p>
+  <div class="field"><label for="title">Report title</label><input class="ar" id="title" name="title" type="text" dir="rtl" value="{{ report.title }}"></div>
+  <div class="field"><label for="es">الملخص التنفيذي <span class="muted">(Executive summary)</span></label><textarea class="ar" dir="rtl" id="es" name="executive_summary">{{ d.executive_summary }}</textarea></div>
+  {% for r in rows %}{% set f = r.f %}
+  <fieldset style="border:1px solid var(--line);border-right:4px solid {{ defect_info(f.class_name).color }};border-radius:6px;padding:12px 14px;margin:0 0 14px">
+    <legend class="small" style="padding:0 6px"><b>{{ f.code }}</b> {{ defect_info(f.class_name).en }} · {{ severity_en[f.severity] }}</legend>
+    {% for k in fields %}
+    <div class="field"{% if loop.last %} style="margin:0"{% endif %}><label for="{{ k }}_{{ f.code }}">{{ labels[k] }}</label><textarea class="ar" dir="rtl" id="{{ k }}_{{ f.code }}" name="{{ k }}_{{ f.code }}" style="min-height:{{ 96 if k in ('description','consequences') else 64 }}px">{{ r.text[k] }}</textarea></div>
+    {% endfor %}
+  </fieldset>
+  {% endfor %}
+  <div class="field"><label for="rec">التوصيات <span class="muted">(Recommendations, one per line)</span></label><textarea class="ar" dir="rtl" id="rec" name="recommendations">{{ d.recommendations|join('\n') }}</textarea></div>
+  <div class="field"><label for="lim">حدود التقرير <span class="muted">(Limitations, one per line)</span></label><textarea class="ar" dir="rtl" id="lim" name="limitations">{{ d.limitations|join('\n') }}</textarea></div>
+  <div class="btn-row"><button class="btn btn-primary">Save report</button><a class="btn btn-ghost" href="{{ url_for('reports.view', insp_id=insp.id) }}">Cancel</a></div>
+</form>
+{% else %}
+<article class="report-doc" lang="ar" dir="rtl">
+  <div class="ar">
+    <h1 class="ar">{{ report.title }}</h1>
+    <p class="muted" style="margin:4px 0 0">رقم الفحص {{ insp.code }} · {{ "تقرير صادر ومعتمد" if report.status == "issued" else "مسودة" }}</p>
+    <table class="kv">
+      <tr><th>التوربين</th><td>{{ insp.turbine.code }}{% if insp.turbine.name %} ({{ insp.turbine.name }}){% endif %}</td></tr>
+      <tr><th>الموقع</th><td>{{ insp.turbine.site }}{% if insp.turbine.region %} - {{ insp.turbine.region }}{% endif %}</td></tr>
+      <tr><th>الشفرة</th><td>{{ insp.blade.label|replace("Blade", "الشفرة") if insp.blade else "غير محددة" }}</td></tr>
+      <tr><th>تاريخ الفحص</th><td>{{ insp.inspection_date }}</td></tr>
+      <tr><th>المراجع المعتمِد</th><td>{{ insp.review_completed_by.name if insp.review_completed_by else "-" }}</td></tr>
+      <tr><th>نموذج الكشف</th><td dir="ltr" style="text-align:right">{{ insp.model_name }} · conf ≥ {{ "%.2f"|format(insp.conf_threshold) }}{% if insp.vlm_model and insp.vlm_status in ('done','partial') %} + {{ insp.vlm_model }}{% endif %}</td></tr>
+      <tr><th>مستوى الخطورة العام</th><td><span class="badge b-{{ risk }}">{{ {"low":"منخفض","medium":"متوسط","high":"مرتفع"}[risk] }}</span></td></tr>
+    </table>
+    <h2>الملخص التنفيذي</h2>
+    <p>{{ d.executive_summary }}</p>
+    {% set c = insp.counts() %}
+    <h2>ملخص الرصد والمراجعة</h2>
+    <table class="kv">
+      <tr><th>رصد نموذج YOLO</th><td>{{ insp.findings|selectattr('source','equalto','ai')|list|length }}</td></tr>
+      {% if insp.vlm_status in ('done','partial') %}<tr><th>تحقق نموذج الرؤية واللغة (VLM)</th><td>أكد {{ insp.findings|selectattr('vlm_verdict','in',['confirmed','relabeled'])|list|length }} · رفض {{ insp.findings|selectattr('vlm_verdict','equalto','rejected')|list|length }} · أضاف {{ insp.findings|selectattr('source','equalto','vlm')|list|length }}</td></tr>{% endif %}
+      <tr><th>مقبولة / مرفوضة / غير مؤكدة</th><td>{{ c.accepted }} / {{ c.rejected }} / {{ c.uncertain }}</td></tr>
+      <tr><th>مضافة يدويًا من المراجع</th><td>{{ insp.findings|selectattr('source','equalto','manual')|list|length }}</td></tr>
+    </table>
+    <h2>العيوب المعتمدة</h2>
+    {% for r in rows %}{% set f = r.f %}{% set di = defect_info(f.class_name) %}
+    <div class="rfind" style="border-right-color:{{ di.color }}">
+      <div>
+        <h3>{{ f.code }} · {{ di.ar }}</h3>
+        <div class="meta">الخطورة: {{ {"low":"منخفضة","medium":"متوسطة","high":"عالية"}[f.severity] }} · الثقة: {{ f.confidence|pct if f.confidence is not none else "يدوي" }} · الموقع: {{ r.loc }}</div>
+        <dl class="rfields">
+          {% for k in fields %}{% if r.text[k] %}<dt>{{ labels[k] }}</dt><dd{% if k in ('inspection','maintenance') %} class="act"{% endif %}>{{ r.text[k] }}</dd>{% endif %}{% endfor %}
+        </dl>
+        <div class="meta" style="margin-top:6px">الدليل: <span dir="ltr">{{ f.frame.label }}</span></div>
+      </div>
+      <div class="evidence" data-src="{{ url_for('main.files', rel=f.frame.image_path) }}" data-box="{{ [f.x1, f.y1, f.x2, f.y2]|tojson }}" data-color="{{ di.color }}"></div>
+    </div>
+    {% else %}<p>لم يتم اعتماد أي عيوب في هذا الفحص.</p>{% endfor %}
+    <h2>التوصيات</h2>
+    <ul>{% for x in d.recommendations %}<li>{{ x }}</li>{% endfor %}</ul>
+    <h2>حدود التقرير</h2>
+    <ul class="muted">{% for x in d.limitations %}<li>{{ x }}</li>{% endfor %}
+      {% if c.uncertain %}<li>توجد {{ c.uncertain }} نتائج صنّفها المراجع كغير مؤكدة، ولم تُدرج في هذا التقرير وتتطلب إعادة فحص.</li>{% endif %}</ul>
+  </div>
+</article>
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+// Crop each evidence image around its box (client-side preview; the PDF does the same server-side).
+document.querySelectorAll(".evidence").forEach(el => {
+  const img = new Image();
+  img.onload = () => {
+    const [x1, y1, x2, y2] = JSON.parse(el.dataset.box), W = img.naturalWidth, H = img.naturalHeight;
+    const bw = (x2 - x1) * W, bh = (y2 - y1) * H, cx = (x1 + x2) / 2 * W, cy = (y1 + y2) / 2 * H;
+    let sw = Math.max(bw * 2.2, bh * 2.2 * 4 / 3, 220); sw = Math.min(sw, W, H * 4 / 3); const sh = sw * 3 / 4;
+    const sx = Math.max(0, Math.min(W - sw, cx - sw / 2)), sy = Math.max(0, Math.min(H - sh, cy - sh / 2));
+    const c = document.createElement("canvas"); c.width = 400; c.height = 300;
+    const ctx = c.getContext("2d"), k = Math.min(400 / sw, 300 / sh);
+    ctx.fillStyle = "#0d1d26"; ctx.fillRect(0, 0, 400, 300);
+    const ox = (400 - sw * k) / 2, oy = (300 - sh * k) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, ox, oy, sw * k, sh * k);
+    ctx.strokeStyle = el.dataset.color; ctx.lineWidth = 3;
+    ctx.strokeRect(ox + (x1 * W - sx) * k, oy + (y1 * H - sy) * k, bw * k, bh * k);
+    const out = new Image(); out.src = c.toDataURL("image/jpeg", .85); out.alt = "Evidence";
+    el.appendChild(out);
+  };
+  img.src = el.dataset.src;
+});
+document.getElementById("gen-form")?.addEventListener("submit", () => {
+  const b = document.getElementById("gen-btn"); b.disabled = true; b.textContent = "Writing the report…";
+});
+</script>
+{% endblock %}

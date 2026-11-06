@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge %}
+{% from "dashboards/_macros.html" import by_class_panel, review_split_panel, insp_table %}
+{% block title %}Review dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Review dashboard</h1><p>Validate the AI results submitted by inspectors before any report becomes final.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('inspections.history', status='in_review') }}">{{ icon("eye") }}Open review queue</a>
+</div>
+
+<div class="metrics">
+  <a class="metric {{ 'alert' if stats.queue }}" href="{{ url_for('inspections.history', status='in_review') }}"><div class="v">{{ stats.queue }}</div><div class="l">Waiting for review</div></a>
+  <a class="metric {{ 'alert' if stats.need_report }}" href="{{ url_for('reports.index') }}"><div class="v">{{ stats.need_report }}</div><div class="l">Approved, report not issued</div></a>
+  <div class="metric"><div class="v">{{ stats.approved }}</div><div class="l">Approved by me</div></div>
+  <div class="metric"><div class="v">{{ stats.rejected }}</div><div class="l">Rejected by me</div></div>
+  <a class="metric" href="{{ url_for('reports.index', status='issued') }}"><div class="v">{{ stats.reports }}</div><div class="l">Reports I issued</div></a>
+</div>
+
+<section class="panel" style="margin-bottom:18px{{ ';border-color:#f0d9a8' if queue }}">
+  <div class="panel-head"{% if queue %} style="background:#fffaf0"{% endif %}><h2>Review queue</h2><span class="muted small">Oldest submission first</span></div>
+  {% call(i) insp_table(queue, cols=("code","turbine","inspector","submitted","findings","pending","vlm"), empty="The queue is empty. Inspections appear here when an inspector submits them.", action=True) %}
+    <a class="btn btn-sm btn-signal" href="{{ url_for('inspections.review', insp_id=i.id) }}">Review</a>
+  {% endcall %}
+</section>
+
+{% if need_report %}
+<section class="panel" style="margin-bottom:18px">
+  <div class="panel-head"><h2>Approved: generate the Arabic report</h2></div>
+  {% call(i) insp_table(need_report, cols=("code","turbine","inspector","findings","status"), action=True) %}
+    <a class="btn btn-sm btn-primary" href="{{ url_for('reports.view', insp_id=i.id) }}">{{ "Open draft" if i.report else "Generate report" }}</a>
+  {% endcall %}
+</section>
+{% endif %}
+
+<div class="cols" style="margin-bottom:18px">
+  <section class="panel">
+    <div class="panel-head"><h3>My recent decisions</h3><a href="{{ url_for('inspections.history') }}" class="small">All submitted inspections</a></div>
+    {{ insp_table(mine_done, cols=("code","turbine","inspector","findings","status"), empty="You haven't completed a review yet.") }}
+  </section>
+  {{ review_split_panel(charts.review, "Finding decisions (all submitted inspections)") }}
+</div>
+{{ by_class_panel(charts) }}
+{% endblock %}
+{% block scripts %}{% include "dashboards/_charts.html" %}{% endblock %}

@@ -1,0 +1,72 @@
+{% from "macros.html" import icon, status_badge %}
+
+{% macro by_class_panel(charts, title="Approved defects by type") %}
+<section class="panel">
+  <div class="panel-head"><h3>{{ title }}</h3></div>
+  <div class="panel-body">
+    {% if charts.by_class|sum(attribute='accepted') %}
+    <div class="chart-box" style="height:{{ 70 + charts.by_class|length * 46 }}px"><canvas id="c-class" role="img" aria-label="{{ title }}"></canvas></div>
+    {% else %}<div class="empty"><p>No approved defects yet. They appear after a Human Reviewer approves an inspection.</p></div>{% endif %}
+    <details class="chart-table"><summary>Show as table</summary>
+      <table class="t"><thead><tr><th>Type</th><th class="right">Detected by AI</th><th class="right">Approved</th></tr></thead><tbody>
+      {% for r in charts.by_class %}<tr><td><span class="cls"><span class="dot" style="background:{{ r.color }}"></span>{{ r.label }}</span></td><td class="right num">{{ r.detected }}</td><td class="right num">{{ r.accepted }}</td></tr>{% endfor %}
+      </tbody></table></details>
+  </div>
+</section>
+{% endmacro %}
+
+{% macro per_week_panel(charts, title="Inspections per week") %}
+<section class="panel">
+  <div class="panel-head"><h3>{{ title }}</h3><span class="muted small">Last 8 weeks</span></div>
+  <div class="panel-body">
+    <div class="chart-box"><canvas id="c-week" role="img" aria-label="{{ title }}"></canvas></div>
+    <details class="chart-table"><summary>Show as table</summary>
+      <table class="t"><tbody>{% for w in charts.per_week %}<tr><td>Week of {{ w.label }}</td><td class="right num">{{ w.value }}</td></tr>{% endfor %}</tbody></table></details>
+  </div>
+</section>
+{% endmacro %}
+
+{% macro review_split_panel(r, title="Finding decisions") %}
+<section class="panel">
+  <div class="panel-head"><h3>{{ title }}</h3></div>
+  <div class="panel-body">
+    {% set tot = r.accepted + r.rejected + r.uncertain + r.pending %}
+    {% if tot %}
+    <div style="display:flex;height:12px;border-radius:4px;overflow:hidden;gap:2px;margin-bottom:12px">
+      {% for k, col in [("accepted","var(--ok)"),("rejected","var(--bad)"),("uncertain","var(--warn)"),("pending","var(--faint)")] %}
+        {% if r[k] %}<span title="{{ k|capitalize }}: {{ r[k] }}" style="flex:{{ r[k] }};background:{{ col }}"></span>{% endif %}
+      {% endfor %}
+    </div>
+    <div class="tally">
+      <div><b>{{ r.accepted }}</b><span>Accepted</span></div><div><b>{{ r.rejected }}</b><span>Rejected</span></div>
+      <div><b>{{ r.uncertain }}</b><span>Uncertain</span></div><div><b>{{ r.pending }}</b><span>Pending</span></div>
+    </div>
+    <p class="small muted" style="margin:12px 0 0">Reviewers overruled the AI on {{ (r.rejected / (tot - r.pending) * 100)|round|int if tot - r.pending else 0 }}% of decided findings.</p>
+    {% else %}<p class="muted" style="margin:0">No findings yet.</p>{% endif %}
+  </div>
+</section>
+{% endmacro %}
+
+{% macro insp_table(items, cols=("code","turbine","date","findings","status"), empty="Nothing here.", action=None) %}
+{% if items %}
+<div class="table-wrap"><table class="t">
+  <thead><tr>
+    <th>Code</th>{% if "turbine" in cols %}<th>Turbine</th>{% endif %}{% if "inspector" in cols %}<th>Inspector</th>{% endif %}
+    {% if "date" in cols %}<th>Flight date</th>{% endif %}{% if "submitted" in cols %}<th>Submitted</th>{% endif %}
+    {% if "findings" in cols %}<th class="right">Findings</th>{% endif %}{% if "vlm" in cols %}<th class="right">VLM disputes</th>{% endif %}
+    {% if "status" in cols %}<th>Status</th>{% endif %}{% if action %}<th></th>{% endif %}</tr></thead>
+  <tbody>{% for i in items %}{% set c = i.counts() %}
+    <tr>
+      <td><a class="code" href="{{ url_for('inspections.detail', insp_id=i.id) }}">{{ i.code }}</a></td>
+      {% if "turbine" in cols %}<td>{{ i.turbine.code }}{{ " · " ~ i.blade.label if i.blade }}</td>{% endif %}
+      {% if "inspector" in cols %}<td>{{ i.created_by.name if i.created_by else "-" }}</td>{% endif %}
+      {% if "date" in cols %}<td>{{ i.inspection_date|d }}</td>{% endif %}
+      {% if "submitted" in cols %}<td class="small">{{ i.submitted_at|ago }}</td>{% endif %}
+      {% if "findings" in cols %}<td class="right num">{% if "pending" in cols and i.status == "in_review" %}{{ c.pending }} pending / {% endif %}{{ c.total }}</td>{% endif %}
+      {% if "vlm" in cols %}<td class="right num">{{ i.findings|selectattr('vlm_verdict','equalto','rejected')|list|length }}</td>{% endif %}
+      {% if "status" in cols %}<td>{{ status_badge(i.status, i.status_label) }}</td>{% endif %}
+      {% if action %}<td class="right">{{ caller(i) }}</td>{% endif %}
+    </tr>
+  {% endfor %}</tbody></table></div>
+{% else %}<div class="empty"><p>{{ empty }}</p></div>{% endif %}
+{% endmacro %}

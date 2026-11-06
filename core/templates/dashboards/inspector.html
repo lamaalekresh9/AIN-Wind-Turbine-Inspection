@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, status_badge %}
+{% from "dashboards/_macros.html" import by_class_panel, per_week_panel, insp_table %}
+{% block title %}My dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Hello, {{ current_user.name.split()[0] }}</h1><p>Your inspections: upload, check the AI results, and submit them for human review.</p></div>
+  <div class="btn-row">
+    <a class="btn" href="{{ url_for('live.index') }}">{{ icon("camera") }}Live detection</a>
+    <a class="btn btn-primary" href="{{ url_for('inspections.new') }}">{{ icon("plus") }}New inspection</a>
+  </div>
+</div>
+
+<div class="metrics">
+  <a class="metric" href="{{ url_for('inspections.history') }}"><div class="v">{{ stats.total }}</div><div class="l">My inspections</div></a>
+  <a class="metric {{ 'alert' if stats.draft }}" href="{{ url_for('inspections.history', status='draft') }}"><div class="v">{{ stats.draft }}</div><div class="l">Ready to submit</div></a>
+  <a class="metric" href="{{ url_for('inspections.history', status='in_review') }}"><div class="v">{{ stats.pending }}</div><div class="l">Pending review</div></a>
+  <a class="metric" href="{{ url_for('inspections.history', status='reviewed') }}"><div class="v">{{ stats.approved }}</div><div class="l">Approved{% if stats.reported %}, {{ stats.reported }} with final report{% endif %}</div></a>
+  <a class="metric {{ 'alert' if stats.rejected }}" href="{{ url_for('inspections.history', status='rejected') }}"><div class="v">{{ stats.rejected }}</div><div class="l">Rejected</div></a>
+</div>
+
+{% if running %}
+<section class="panel" style="margin-bottom:18px">
+  <div class="panel-head"><h2>Analyzing now</h2></div>
+  <ul class="feed">{% for i in running %}
+    <li style="grid-template-columns:30px 1fr auto"><span>{{ icon("refresh") }}</span><div><a class="code" href="{{ url_for('inspections.detail', insp_id=i.id) }}">{{ i.code }}</a> {{ i.turbine.code }}<time>{{ i.progress_msg or "Queued" }} · {{ i.progress or 0 }}%</time></div>{{ status_badge(i.status, i.status_label) }}</li>
+  {% endfor %}</ul>
+</section>
+{% endif %}
+
+<section class="panel" style="margin-bottom:18px{{ ';border-color:#f0d9a8' if action }}">
+  <div class="panel-head"{% if action %} style="background:#fffaf0"{% endif %}><h2>Needs your action</h2><span class="muted small">Check the AI results, then submit</span></div>
+  {% call(i) insp_table(action, cols=("code","turbine","date","findings","vlm","status"), empty="Nothing to do. New inspections land here after the AI analysis finishes.", action=True) %}
+    {% if i.status == "failed" %}<a class="btn btn-sm" href="{{ url_for('inspections.detail', insp_id=i.id) }}">See error</a>
+    {% else %}<a class="btn btn-sm btn-signal" href="{{ url_for('inspections.detail', insp_id=i.id) }}">{{ "Fix & resubmit" if i.status == "rejected" else "Check & submit" }}</a>{% endif %}
+  {% endcall %}
+</section>
+
+<section class="panel" style="margin-bottom:18px">
+  <div class="panel-head"><h3>Recent inspections</h3><a href="{{ url_for('inspections.history') }}" class="small">View all</a></div>
+  {{ insp_table(recent, cols=("code","turbine","date","findings","status"), empty="You haven't uploaded any inspections yet.") }}
+</section>
+
+<div class="cols-even">
+  {{ by_class_panel(charts, "My approved defects by type") }}
+  {{ per_week_panel(charts, "My inspections per week") }}
+</div>
+{% endblock %}
+{% block scripts %}{% include "dashboards/_charts.html" %}{% endblock %}

@@ -1,0 +1,27 @@
+# Flask database and instance files
+instance/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables and API keys
+.env
+.env.*
+!.env.example
+
+# Virtual environments
+venv/
+.venv/
+
+# macOS files
+.DS_Store
+
+# VS Code settings
+.vscode/
+
+# Logs and temporary files
+*.log
+
+# Temporary uploads and generated outputs
+uploads/
