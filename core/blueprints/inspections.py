@@ -52,6 +52,8 @@ def history():
     a = request.args
     if a.get("inspector") and current_user.role in (REVIEWER, ADMIN):
         q = q.filter(Inspection.created_by_id == int(a["inspector"]))
+    if a.get("reviewer") and current_user.role in (REVIEWER, ADMIN):
+        q = q.filter(Inspection.review_completed_by_id == int(a["reviewer"]))
     if a.get("q"):
         like = f"%{a['q'].strip()}%"
         q = q.filter(db.or_(Inspection.code.ilike(like), Inspection.title.ilike(like)))
@@ -70,9 +72,12 @@ def history():
         statuses = ["processing", "draft"] + statuses + ["failed"]
     inspectors = (User.query.filter(User.role.in_([INSPECTOR, ADMIN])).order_by(User.name).all()
                   if current_user.role in (REVIEWER, ADMIN) else [])
+    reviewers = (User.query.filter(User.role.in_([REVIEWER, ADMIN])).order_by(User.name).all()
+                 if current_user.role in (REVIEWER, ADMIN) else [])
     return render_template("inspections/history.html", page=page,
                            turbines=Turbine.query.order_by(Turbine.code).all(), args=a,
-                           statuses=[(s, STATUS_LABELS[s]) for s in statuses], inspectors=inspectors)
+                           statuses=[(s, STATUS_LABELS[s]) for s in statuses], inspectors=inspectors,
+                           reviewers=reviewers)
 
 
 # ------------------------------------------------------------------ new

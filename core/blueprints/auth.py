@@ -46,6 +46,22 @@ def login():
     return render_template("auth/login.html", allow_signup=current_app.config["ALLOW_SIGNUP"])
 
 
+@bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Demo only: looks like a real reset flow but sends no email and changes nothing.
+    The same confirmation is shown whether or not the email exists (no account enumeration)."""
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard.index"))
+    sent_to = None
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        if not EMAIL_RE.match(email):
+            flash("Enter the email address you sign in with.", "error")
+        else:
+            sent_to = email
+    return render_template("auth/forgot.html", sent_to=sent_to)
+
+
 @bp.route("/signup", methods=["GET", "POST"])
 def signup():
     if current_user.is_authenticated:

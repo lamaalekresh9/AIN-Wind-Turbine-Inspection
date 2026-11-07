@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from flask import (Blueprint, abort, current_app, flash, redirect, render_template, request,
@@ -5,7 +6,7 @@ from flask import (Blueprint, abort, current_app, flash, redirect, render_templa
 from flask_login import current_user, login_required
 
 from ..extensions import db
-from ..models import SupportTicket
+from ..models import SupportTicket, TicketReply
 from ..utils import audit
 
 bp = Blueprint("main", __name__)
@@ -55,7 +56,7 @@ FAQS = [
 ]
 
 STEPS = [
-    ("Add the turbine", "Open Turbines and register the turbine with its site and blades A, B and C."),
+    ("Check the turbine is registered", "An admin registers each turbine with its site and blades A, B and C under Turbines. Ask your admin if yours is missing."),
     ("Start an inspection", "Choose the turbine and blade, add the flight details, and upload photos or a video."),
     ("Wait for AI analysis", "Ain detects defects on every image or sampled frame. Progress is shown live."),
     ("Review every finding", "A reviewer accepts, rejects, corrects or marks each finding uncertain, then completes the review."),
@@ -80,9 +81,49 @@ def help_center():
             db.session.flush()
             audit("support.ticket", "ticket", t.id, subject=subject)
             db.session.commit()
+            t.last_user_at = t.created_at
+            db.session.commit()
+            if current_user.is_authenticated:
+                flash("Message sent. You'll see the reply under My support requests.", "success")
+                return redirect(url_for("main.my_ticket", tid=t.id))
             flash("Message sent. The support team will reply by email.", "success")
             return redirect(url_for("main.help_center") + "#contact")
-    return render_template("help.html", faqs=FAQS, steps=STEPS)
+    mine = []
+    if current_user.is_authenticated:
+        mine = (SupportTicket.query.filter_by(user_id=current_user.id)
+                .order_by(SupportTicket.created_at.desc()).limit(5).all())
+    return render_template("help.html", faqs=FAQS, steps=STEPS, my_tickets=mine)
+
+
+@bp.route("/support")
+@login_required
+def my_tickets():
+    items = (SupportTicket.query.filter_by(user_id=current_user.id)
+             .order_by(SupportTicket.created_at.desc()).all())
+    return render_template("support/list.html", tickets=items)
+
+
+@bp.route("/support/<int:tid>", methods=["GET", "POST"])
+@login_required
+def my_ticket(tid):
+    t = db.session.get(SupportTicket, tid)
+    if not t or t.user_id != current_user.id:  # only the person who sent it (admins use /admin/tickets)
+        abort(404)
+    if request.method == "POST":
+        body = (request.form.get("body") or "").strip()[:5000]
+        if not body:
+            flash("Write a message first.", "error")
+        else:
+            db.session.add(TicketReply(ticket_id=t.id, author_id=current_user.id, from_staff=False, body=body))
+            t.last_user_at = datetime.utcnow()
+            t.status = "open"  # a follow-up reopens a resolved request
+            audit("support.followup", "ticket", t.id)
+            db.session.commit()
+            flash("Message sent to the support team.", "success")
+        return redirect(url_for("main.my_ticket", tid=t.id))
+    t.user_seen_at = datetime.utcnow()
+    db.session.commit()
+    return render_template("support/thread.html", t=t)
 
 
 @bp.route("/files/<path:rel>")

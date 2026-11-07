@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% from "support/_thread.html" import thread, ticket_state %}
+{% block title %}{{ t.subject }} · Support{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="{{ url_for('admin.tickets') }}">Support requests</a> / #{{ t.id }}</div>
+<div class="page-head">
+  <div><h1 dir="auto">{{ t.subject }}</h1>
+    <p>{{ t.name }} · <a href="mailto:{{ t.email }}">{{ t.email }}</a>{% if t.user %} · {{ t.user.role_label }}{% else %} · Visitor (not signed in){% endif %} · {{ t.topic or "General" }} · {{ t.created_at|ago }}</p></div>
+  <div class="btn-row">{{ ticket_state(t, staff_view=True) }}
+    <form method="post" action="{{ url_for('admin.ticket_status', tid=t.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm">{{ icon("check") if t.status == "open" else icon("refresh") }}{{ "Mark resolved" if t.status == "open" else "Reopen" }}</button></form>
+  </div>
+</div>
+<div style="max-width:860px">
+<section class="panel" style="margin-bottom:18px">
+  <div class="panel-head"><h3>Conversation</h3><span class="small muted">{{ 1 + t.replies|length }} message{{ 's' if t.replies }}</span></div>
+  {{ thread(t, staff_view=True) }}
+</section>
+<section class="panel">
+  <div class="panel-head"><h3>Reply</h3></div>
+  <div class="panel-body">
+    {% if not t.user %}<p class="small" style="margin:0 0 12px;color:var(--warn)">This person wasn't signed in, so they can't see replies in Ain. Answer by email: <a href="mailto:{{ t.email }}?subject={{ ('Re: ' ~ t.subject)|urlencode }}">{{ t.email }}</a>.</p>{% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="body" class="sr-only">Reply</label><textarea id="body" name="body" rows="5" dir="auto" placeholder="Write your reply to {{ t.name }}…" {{ 'autofocus' if t.awaiting_staff }}></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" name="close" value="0">{{ icon("send") }}Send reply</button>
+        {% if t.status == "open" %}<button class="btn" name="close" value="1">{{ icon("check") }}Send and mark resolved</button>{% endif %}
+      </div>
+    </form>
+  </div>
+</section>
+</div>
+{% endblock %}

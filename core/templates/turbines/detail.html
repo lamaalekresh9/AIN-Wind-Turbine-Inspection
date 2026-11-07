@@ -20,7 +20,7 @@
   <div><h1>{{ t.code }}{% if t.name %} <span class="muted" style="font-weight:500">{{ t.name }}</span>{% endif %}</h1>
     <p>{{ t.site }}{{ ", " ~ t.region if t.region }} · {{ status_badge(t.status) }}</p></div>
   <div class="btn-row">
-    {% if perm.can_create() %}<a class="btn" href="{{ url_for('turbines.edit', tid=t.id) }}">{{ icon("edit") }}Edit</a>{% endif %}
+    {% if perm.can_manage_turbines() %}<a class="btn" href="{{ url_for('turbines.edit', tid=t.id) }}">{{ icon("edit") }}Edit</a>{% endif %}
     {% if current_user.is_admin and not has_any %}
     <form method="post" action="{{ url_for('turbines.delete', tid=t.id) }}" data-confirm="Delete turbine {{ t.code }} and its blades?">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger">{{ icon("trash") }}Delete</button></form>
@@ -40,7 +40,7 @@
             <h4><span>Blade {{ b.position }}</span><span class="badge {{ 'b-high' if per_blade.get(b.id, 0) else 'b-low' }}">{{ per_blade.get(b.id, 0) }} defect{{ 's' if per_blade.get(b.id, 0) != 1 }}</span></h4>
             <div class="small muted">{{ b.serial or "No serial" }}</div>
             <div class="small">{{ b.length_m ~ " m" if b.length_m else "" }}{{ " · " ~ b.material if b.material }}</div>
-            {% if perm.can_create() %}<details class="edit"><summary>Edit blade</summary>
+            {% if perm.can_manage_turbines() %}<details class="edit"><summary>Edit blade</summary>
               <form method="post" action="{{ url_for('turbines.save_blade', tid=t.id) }}">{{ blade_fields(b) }}
                 <div class="btn-row"><button class="btn btn-sm btn-primary">Save</button></div></form>
               <form method="post" action="{{ url_for('turbines.delete_blade', tid=t.id, bid=b.id) }}" data-confirm="Delete blade {{ b.position }}?" style="margin-top:6px">
@@ -48,7 +48,7 @@
             </details>{% endif %}
           </div>
           {% endfor %}
-          {% if perm.can_create() %}          <div class="blade" style="border-style:dashed">
+          {% if perm.can_manage_turbines() %}          <div class="blade" style="border-style:dashed">
             <h4>Add a blade</h4>
             <details class="edit"><summary>{{ "Add blade" }}</summary>
               <form method="post" action="{{ url_for('turbines.save_blade', tid=t.id) }}">{{ blade_fields(None) }}

@@ -3,8 +3,8 @@
 {% block title %}Turbines{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><h1>Turbines</h1><p>{{ total }} turbine{{ 's' if total != 1 }} grouped by site. Open one to manage its blades and see its inspections.</p></div>
-  {% if perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('turbines.new') }}">{{ icon("plus") }}Add turbine</a>{% endif %}
+  <div><h1>Turbines</h1><p>{{ total }} turbine{{ 's' if total != 1 }} grouped by site. {{ 'Open one to manage its blades and see its inspections.' if perm.can_manage_turbines() else 'Open one to see its blades and inspections. Only an admin can add or edit turbines.' }}</p></div>
+  {% if perm.can_manage_turbines() %}<a class="btn btn-primary" href="{{ url_for('turbines.new') }}">{{ icon("plus") }}Add turbine</a>{% endif %}
 </div>
 <form class="panel filters" method="get" style="margin-bottom:22px;border-bottom:1px solid var(--line)">
   <div class="f"><label for="q">Search</label><input id="q" type="search" name="q" placeholder="Turbine ID, site or region" value="{{ args.q or '' }}"></div>
@@ -32,6 +32,6 @@
 {% else %}
 <section class="panel"><div class="empty"><h3>{{ "No turbines match" if args else "No turbines yet" }}</h3>
   <p>{{ "Try another search." if args else "Register a turbine with its site and blades to start filing inspections." }}</p>
-  {% if not args and perm.can_create() %}<a class="btn btn-primary" href="{{ url_for('turbines.new') }}">Add turbine</a>{% endif %}</div></section>
+  {% if not args and perm.can_manage_turbines() %}<a class="btn btn-primary" href="{{ url_for('turbines.new') }}">Add turbine</a>{% endif %}</div></section>
 {% endfor %}
 {% endblock %}

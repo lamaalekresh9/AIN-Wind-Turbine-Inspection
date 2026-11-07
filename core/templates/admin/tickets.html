@@ -1,17 +1,31 @@
 {% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% from "support/_thread.html" import ticket_state %}
 {% block title %}Support requests{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>Support requests</h1><p>Messages sent from the Help center.</p></div></div>
+<div class="page-head">
+  <div><h1>Support requests</h1><p>Messages sent from the Help center. Open one to reply; the user sees your reply under <b>My support requests</b>.</p></div>
+  <div class="btn-row">
+    <a class="btn {{ 'btn-primary' if show == 'open' }}" href="{{ url_for('admin.tickets', show='open') }}">Open ({{ counts.get('open', 0) }})</a>
+    <a class="btn {{ 'btn-primary' if show == 'closed' }}" href="{{ url_for('admin.tickets', show='closed') }}">Resolved ({{ counts.get('closed', 0) }})</a>
+    <a class="btn {{ 'btn-primary' if show == 'all' }}" href="{{ url_for('admin.tickets', show='all') }}">All</a>
+  </div>
+</div>
 <section class="panel">
   {% if tickets %}
-  <ul class="feed">{% for t in tickets %}
-    <li style="grid-template-columns:1fr auto;padding:16px 18px">
-      <div><b>{{ t.subject }}</b> <span class="badge {{ 'b-in_review' if t.status == 'open' else 'b-accepted' }}">{{ t.status|capitalize }}</span>
-        <div class="small muted">{{ t.name }} · <a href="mailto:{{ t.email }}">{{ t.email }}</a> · {{ t.topic or "General" }} · {{ t.created_at|ago }}</div>
-        <p style="margin:8px 0 0;white-space:pre-line">{{ t.message }}</p></div>
-      <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="id" value="{{ t.id }}">
-        <button class="btn btn-sm">{{ "Mark resolved" if t.status == "open" else "Reopen" }}</button></form>
-    </li>{% endfor %}</ul>
-  {% else %}<div class="empty"><h3>No support requests</h3><p>Messages sent from the Help center will show here.</p></div>{% endif %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Subject</th><th>From</th><th>Topic</th><th class="right">Messages</th><th>Last activity</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for t in tickets %}
+      <tr>
+        <td><a href="{{ url_for('admin.ticket', tid=t.id) }}"><b>{{ t.subject }}</b></a>
+          <div class="small muted" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" dir="auto">{{ (t.replies[-1].body if t.replies else t.message) }}</div></td>
+        <td>{{ t.name }}<div class="small muted">{{ t.user.role_label if t.user else "Visitor" }}</div></td>
+        <td class="small">{{ t.topic or "General" }}</td>
+        <td class="right num">{{ 1 + t.replies|length }}</td>
+        <td class="small muted">{{ ([t.last_user_at or t.created_at, t.last_staff_at] | reject('none') | max)|ago }}</td>
+        <td>{{ ticket_state(t, staff_view=True) }}</td>
+        <td class="right"><a class="btn btn-sm {{ 'btn-signal' if t.awaiting_staff }}" href="{{ url_for('admin.ticket', tid=t.id) }}">{{ icon("send") if t.awaiting_staff else icon("eye") }}{{ "Reply" if t.awaiting_staff else "Open" }}</a></td>
+      </tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="empty"><h3>No {{ "open " if show == "open" else ("resolved " if show == "closed" else "") }}support requests</h3><p>Messages sent from the Help center will show here.</p></div>{% endif %}
 </section>
 {% endblock %}

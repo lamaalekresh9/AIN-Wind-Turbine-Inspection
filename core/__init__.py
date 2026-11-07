@@ -95,6 +95,20 @@ def _register_template_helpers(app):
                     counts["queue"] = Inspection.query.filter_by(status="in_review").count()
                 elif current_user.role == "inspector":
                     counts["action"] = visible_inspections().filter(Inspection.status.in_(["draft", "rejected"])).count()
+                from sqlalchemy import func, or_
+
+                from .models import SupportTicket
+
+                if current_user.role == "admin":
+                    last_user = func.coalesce(SupportTicket.last_user_at, SupportTicket.created_at)
+                    counts["tickets"] = SupportTicket.query.filter(
+                        SupportTicket.status == "open",
+                        or_(SupportTicket.last_staff_at.is_(None), last_user > SupportTicket.last_staff_at)).count()
+                else:
+                    counts["replies"] = SupportTicket.query.filter(
+                        SupportTicket.user_id == current_user.id, SupportTicket.last_staff_at.isnot(None),
+                        or_(SupportTicket.user_seen_at.is_(None),
+                            SupportTicket.last_staff_at > SupportTicket.user_seen_at)).count()
             except Exception:  # noqa: BLE001 — never break a page over a badge
                 pass
         return {"current_user": current_user, "perm": perm, "nav_counts": counts}

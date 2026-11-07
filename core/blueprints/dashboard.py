@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from flask import Blueprint, current_app, render_template
 from flask_login import current_user, login_required
-from sqlalchemy import func
+from sqlalchemy import case, func, or_
 
 from ..extensions import db
 from ..models import ROLE_LABELS, STATUS_LABELS, AuditLog, Finding, Inspection, Report, Turbine, User
@@ -109,13 +109,20 @@ def _admin():
     by_status = dict(db.session.query(Inspection.status, func.count(Inspection.id)).group_by(Inspection.status).all())
     decisions = dict(db.session.query(Inspection.review_decision, func.count(Inspection.id))
                      .filter(Inspection.review_decision.isnot(None)).group_by(Inspection.review_decision).all())
-    per_inspector = (db.session.query(User, func.count(Inspection.id))
-                     .join(Inspection, Inspection.created_by_id == User.id)
-                     .group_by(User.id).order_by(func.count(Inspection.id).desc()).limit(8).all())
-    per_reviewer = (db.session.query(User, func.count(Inspection.id))
-                    .join(Inspection, Inspection.review_completed_by_id == User.id)
-                    .group_by(User.id).order_by(func.count(Inspection.id).desc()).limit(8).all())
-    activity = AuditLog.query.filter(AuditLog.action != "user.login").order_by(AuditLog.created_at.desc()).limit(12).all()
+    # every inspector (even with 0 inspections), busiest first
+    per_inspector = (db.session.query(User, func.count(Inspection.id),
+                                      func.sum(case((Inspection.status == "in_review", 1), else_=0)))
+                     .outerjoin(Inspection, Inspection.created_by_id == User.id)
+                     .filter(or_(User.role == INSPECTOR, Inspection.id.isnot(None)))
+                     .group_by(User.id).order_by(func.count(Inspection.id).desc(), User.name).limit(6).all())
+    # every reviewer (even with 0 decisions) + admins who reviewed something
+    per_reviewer = (db.session.query(User,
+                                     func.sum(case((Inspection.review_decision == "approved", 1), else_=0)),
+                                     func.sum(case((Inspection.review_decision == "rejected", 1), else_=0)))
+                    .outerjoin(Inspection, Inspection.review_completed_by_id == User.id)
+                    .filter(or_(User.role == REVIEWER, Inspection.id.isnot(None)))
+                    .group_by(User.id).order_by(func.count(Inspection.id).desc(), User.name).limit(6).all())
+    activity = AuditLog.query.filter(AuditLog.action != "user.login").order_by(AuditLog.created_at.desc()).limit(20).all()
     oldest_pending = Inspection.query.filter_by(status="in_review").order_by(Inspection.submitted_at).first()
     return render_template(
         "dashboards/admin.html",

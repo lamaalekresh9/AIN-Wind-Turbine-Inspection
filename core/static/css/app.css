@@ -535,3 +535,40 @@ ol.howto b { display: block; }
 .role-card b { display: block; margin-bottom: 2px; }
 .setting-row { padding-bottom: 14px; border-bottom: 1px solid var(--line-2); }
 @media (max-width: 960px) { .role-choice { grid-template-columns: 1fr; } }
+
+/* ---- admin dashboard: two stacked columns so panels don't leave gaps ---- */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .dash-grid { grid-template-columns: minmax(0, 1fr); } }
+.metric .l .sub { display: block; font-size: 12px; color: var(--faint); }
+.status-bars { padding-top: 12px; padding-bottom: 12px; }
+.status-bars a { display: grid; grid-template-columns: 120px 1fr 28px; gap: 10px; align-items: center; padding: 5px 0; text-decoration: none; color: inherit; font-size: 14px; }
+.status-bars a:hover span:first-child { text-decoration: underline; }
+.status-bars a.zero { color: var(--muted); }
+.status-bars .bar { height: 8px; background: var(--line-2); border-radius: 4px; overflow: hidden; }
+.status-bars .bar i { display: block; height: 100%; border-radius: 4px; }
+.status-bars b { text-align: right; }
+.feed.compact li { grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; padding: 8px 18px; font-size: 13.5px; }
+.feed.compact time { display: inline; white-space: nowrap; font-size: 12px; }
+.t.people td { padding-top: 9px; padding-bottom: 9px; vertical-align: middle; }
+.t.people td:first-child { display: flex; gap: 10px; align-items: center; }
+.t.people .avatar { width: 30px; height: 30px; font-size: 11px; flex: none; }
+.t.people b { display: block; font-weight: 600; font-size: 14px; }
+.t.people span:not(.avatar) { font-size: 12.5px; color: var(--muted); }
+/* support threads */
+.thread { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.thread .msg { max-width: 78%; }
+.thread .msg .who { gap: 10px; }
+
+/* left column grows to match the right one; the activity feed fills (and scrolls) the leftover space */
+.dash-grid { align-items: stretch; }
+.dash-grid > .stack:first-child { display: flex; flex-direction: column; }
+.activity-fill { flex: 1 1 auto; display: flex; flex-direction: column; contain: size; min-height: 360px; }
+.activity-fill .feed { flex: 1; overflow-y: auto; }
+@media (max-width: 1100px) { .activity-fill { contain: none; } .activity-fill .feed { max-height: 460px; } }
+.even-h { align-items: stretch; }
+.even-h > .panel { display: flex; flex-direction: column; }
+.even-h > .panel > .panel-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.filters .f-date { flex: 0 1 150px; min-width: 130px; }
+.filters .f-q { flex: 1.4; }
+.label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.label-row label { margin-bottom: 6px; }

@@ -1,12 +1,13 @@
+from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from ..extensions import db
 from sqlalchemy import func
 
-from ..models import ASSIGNABLE_ROLES, ROLE_LABELS, AuditLog, Inspection, SupportTicket, User
+from ..models import ASSIGNABLE_ROLES, ROLE_LABELS, AuditLog, Inspection, SupportTicket, TicketReply, User
 from .. import settings_store
 from ..services import ai_client, detector
 from ..services.knowledge import class_catalog
@@ -166,19 +167,55 @@ def audit_log():
                            args=request.args)
 
 
-@bp.route("/tickets", methods=["GET", "POST"])
+@bp.route("/tickets")
 @login_required
 @admin_required
 def tickets():
+    show = request.args.get("show", "open")
+    q = SupportTicket.query
+    if show in ("open", "closed"):
+        q = q.filter(SupportTicket.status == show)
+    items = q.order_by(SupportTicket.created_at.desc()).all()
+    items.sort(key=lambda t: (not t.awaiting_staff, t.status != "open"))  # needs a reply first
+    counts = dict(db.session.query(SupportTicket.status, func.count(SupportTicket.id))
+                  .group_by(SupportTicket.status).all())
+    return render_template("admin/tickets.html", tickets=items, show=show, counts=counts)
+
+
+@bp.route("/tickets/<int:tid>", methods=["GET", "POST"])
+@login_required
+@admin_required
+def ticket(tid):
+    t = db.session.get(SupportTicket, tid) or abort(404)
     if request.method == "POST":
-        t = db.session.get(SupportTicket, request.form.get("id", type=int))
-        if t:
-            t.status = "closed" if t.status == "open" else "open"
-            db.session.commit()
-        return redirect(url_for("admin.tickets"))
-    return render_template("admin/tickets.html",
-                           tickets=SupportTicket.query.order_by(SupportTicket.status.desc(),
-                                                                SupportTicket.created_at.desc()).all())
+        body = (request.form.get("body") or "").strip()[:5000]
+        close = request.form.get("close") == "1"
+        if not body and not close:
+            flash("Write a reply first.", "error")
+            return redirect(url_for("admin.ticket", tid=t.id))
+        if body:
+            db.session.add(TicketReply(ticket_id=t.id, author_id=current_user.id, from_staff=True, body=body))
+            t.last_staff_at = datetime.utcnow()
+            audit("support.reply", "ticket", t.id)
+        if close and t.status == "open":
+            t.status = "closed"
+            audit("support.closed", "ticket", t.id)
+        db.session.commit()
+        flash("Reply sent. The user will see it in My support requests." if body else "Request marked resolved.",
+              "success")
+        return redirect(url_for("admin.ticket", tid=t.id))
+    return render_template("admin/ticket.html", t=t)
+
+
+@bp.route("/tickets/<int:tid>/status", methods=["POST"])
+@login_required
+@admin_required
+def ticket_status(tid):
+    t = db.session.get(SupportTicket, tid) or abort(404)
+    t.status = "closed" if t.status == "open" else "open"
+    audit("support.closed" if t.status == "closed" else "support.reopened", "ticket", t.id)
+    db.session.commit()
+    return redirect(request.form.get("next") or url_for("admin.ticket", tid=t.id))
 
 
 @bp.route("/ai-test", methods=["POST"])

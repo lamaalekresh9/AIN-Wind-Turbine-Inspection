@@ -22,11 +22,20 @@
     <section class="panel">
       <div class="panel-head"><h3>Roles</h3></div>
       <div class="panel-body">
-        <p><b>Inspector</b><br><span class="muted">Uploads media, manages turbines, views results and reports.</span></p>
-        <p><b>Reviewer</b><br><span class="muted">Everything an inspector does, plus approving findings and issuing Arabic reports.</span></p>
-        <p style="margin:0"><b>Admin</b><br><span class="muted">Manages users and roles, the audit log, and support requests.</span></p>
+        <p><b>Inspector</b><br><span class="muted">Uploads images and videos, runs YOLO and the VLM, and submits inspections for review. Sees only their own inspections.</span></p>
+        <p><b>Human Reviewer</b><br><span class="muted">Checks submitted inspections, accepts, rejects or edits findings, approves or rejects, and issues the Arabic report.</span></p>
+        <p style="margin:0"><b>Admin</b><br><span class="muted">Manages users and roles, settings, system logs and support requests.</span></p>
       </div>
     </section>
+    {% if current_user.is_authenticated and current_user.role != "admin" %}
+    <section class="panel">
+      <div class="panel-head"><h3>Your support requests</h3><a class="small" href="{{ url_for('main.my_tickets') }}">View all</a></div>
+      {% if my_tickets %}<ul class="feed">{% for t in my_tickets %}
+        <li style="grid-template-columns:1fr auto;align-items:center"><div><a href="{{ url_for('main.my_ticket', tid=t.id) }}" dir="auto">{{ t.subject }}</a><time>{{ t.created_at|ago }}</time></div>
+          <span>{% if t.status == "closed" %}<span class="badge b-accepted">Resolved</span>{% elif t.unread_for_user %}<span class="badge b-processing">New reply</span>{% elif t.last_staff_at %}<span class="badge b-reviewed">Replied</span>{% else %}<span class="badge">Waiting</span>{% endif %}</span></li>
+      {% endfor %}</ul>{% else %}<div class="panel-body small muted">Requests you send below show here with the support team's replies.</div>{% endif %}
+    </section>
+    {% endif %}
     <section class="panel" id="contact">
       <div class="panel-head"><h3>Contact support</h3></div>
       <div class="panel-body">

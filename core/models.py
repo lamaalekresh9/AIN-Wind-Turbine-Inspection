@@ -420,5 +420,31 @@ class SupportTicket(db.Model):
     message = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(12), default="open")  # open / closed
     created_at = db.Column(db.DateTime, default=now)
+    last_user_at = db.Column(db.DateTime)    # last message from the person who opened it
+    last_staff_at = db.Column(db.DateTime)   # last reply from an admin
+    user_seen_at = db.Column(db.DateTime)    # when the requester last opened the thread
 
     user = db.relationship("User")
+    replies = db.relationship("TicketReply", backref="ticket", cascade="all, delete-orphan",
+                              order_by="TicketReply.created_at")
+
+    @property
+    def awaiting_staff(self):
+        """Open and the latest message is from the requester (no admin answer yet)."""
+        last_user = self.last_user_at or self.created_at
+        return self.status == "open" and (self.last_staff_at is None or last_user > self.last_staff_at)
+
+    @property
+    def unread_for_user(self):
+        return bool(self.last_staff_at and (self.user_seen_at is None or self.last_staff_at > self.user_seen_at))
+
+
+class TicketReply(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey("support_ticket.id"), nullable=False, index=True)
+    author_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    from_staff = db.Column(db.Boolean, default=False)
+    body = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=now)
+
+    author = db.relationship("User")

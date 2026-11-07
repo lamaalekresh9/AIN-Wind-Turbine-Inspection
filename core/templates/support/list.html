@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon %}
+{% from "support/_thread.html" import ticket_state %}
+{% block title %}My support requests{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>My support requests</h1><p>Messages you sent from the Help center and the support team's replies.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('main.help_center') }}#contact">{{ icon("plus") }}New request</a>
+</div>
+<section class="panel">
+  {% if tickets %}
+  <div class="table-wrap"><table class="t">
+    <thead><tr><th>Subject</th><th>Topic</th><th>Sent</th><th class="right">Replies</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for t in tickets %}
+      <tr {{ 'style="background:var(--info-bg)"'|safe if t.unread_for_user }}>
+        <td><a href="{{ url_for('main.my_ticket', tid=t.id) }}"><b dir="auto">{{ t.subject }}</b></a></td>
+        <td class="small">{{ t.topic or "General" }}</td>
+        <td class="small muted">{{ t.created_at|ago }}</td>
+        <td class="right num">{{ t.replies|selectattr('from_staff')|list|length }}</td>
+        <td>{{ ticket_state(t) }}</td>
+        <td class="right"><a class="btn btn-sm" href="{{ url_for('main.my_ticket', tid=t.id) }}">{{ icon("eye") }}Open</a></td>
+      </tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="empty"><h3>No support requests yet</h3><p>Send a message from the <a href="{{ url_for('main.help_center') }}#contact">Help center</a> and the reply will show up here.</p></div>{% endif %}
+</section>
+{% endblock %}

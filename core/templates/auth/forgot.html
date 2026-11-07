@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import flashes, icon %}
+{% block title %}Reset your password{% endblock %}
+{% block public %}
+<div class="auth">
+  {% include "auth/_art.html" %}
+  <div class="auth-form">
+    <div class="box">
+      {% if sent_to %}
+      <h1>Check your email</h1>
+      <p class="muted">If an Ain account uses <b>{{ sent_to }}</b>, we've sent a link to reset its password. The link expires in 30 minutes.</p>
+      <p class="muted small">Didn't get it? Check your spam folder or <a href="{{ url_for('auth.forgot_password') }}">try again</a>.</p>
+      <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" style="width:100%;margin-top:8px">Back to sign in</a>
+      {% else %}
+      <h1>Reset your password</h1>
+      <p class="muted">Enter the email you sign in with and we'll send you a link to choose a new password.</p>
+      {{ flashes() }}
+      <form method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required autofocus value="{{ request.form.email or '' }}"></div>
+        <button class="btn btn-primary btn-lg" type="submit" style="width:100%">{{ icon("send") }}Send reset link</button>
+      </form>
+      <p style="margin-top:18px"><a href="{{ url_for('auth.login') }}">Back to sign in</a></p>
+      {% endif %}
+      <div class="demo"><b>Demo:</b> this page doesn't send a real email. To change a password, an admin can set a new one in <b>Users &amp; roles</b>, or a signed-in user can change it in <b>Profile &amp; settings</b>.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

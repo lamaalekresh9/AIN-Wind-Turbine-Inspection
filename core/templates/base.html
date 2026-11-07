@@ -46,7 +46,7 @@
       <a href="{{ url_for('admin.audit_log') }}" class="{{ 'active' if ep == 'admin.audit_log' }}">{{ icon("log") }}System logs</a>
       <a href="{{ url_for('admin.settings') }}" class="{{ 'active' if ep == 'admin.settings' }}">{{ icon("cpu") }}Settings</a>
       <a href="{{ url_for('admin.system') }}" class="{{ 'active' if ep == 'admin.system' }}">{{ icon("layers") }}Model &amp; AI status</a>
-      <a href="{{ url_for('admin.tickets') }}" class="{{ 'active' if ep == 'admin.tickets' }}">{{ icon("inbox") }}Support requests</a>
+      <a href="{{ url_for('admin.tickets') }}" class="{{ 'active' if ep in ('admin.tickets', 'admin.ticket') }}">{{ icon("inbox") }}Support requests{% if nav_counts.tickets %}<span class="count">{{ nav_counts.tickets }}</span>{% endif %}</a>
       <div class="nav-group">Inspection tools</div>
       <a href="{{ url_for('inspections.new') }}" class="{{ 'active' if ep == 'inspections.new' }}">{{ icon("upload") }}New inspection</a>
       <a href="{{ url_for('live.index') }}" class="{{ 'active' if ep.startswith('live.') }}">{{ icon("camera") }}Live detection</a>
@@ -55,6 +55,7 @@
       <div class="nav-group">Account</div>
       <a href="{{ url_for('profile.index') }}" class="{{ 'active' if ep == 'profile.index' }}">{{ icon("user") }}Profile &amp; settings</a>
       <a href="{{ url_for('main.help_center') }}" class="{{ 'active' if ep == 'main.help_center' }}">{{ icon("help") }}Help center</a>
+      {% if role != "admin" %}<a href="{{ url_for('main.my_tickets') }}" class="{{ 'active' if ep in ('main.my_tickets', 'main.my_ticket') }}">{{ icon("inbox") }}My support requests{% if nav_counts.replies %}<span class="count">{{ nav_counts.replies }}</span>{% endif %}</a>{% endif %}
       <form method="post" action="{{ url_for('auth.logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="navlink">{{ icon("logout") }}Sign out</button>

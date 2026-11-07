@@ -5,8 +5,10 @@
 <div class="page-head"><div><h1>New inspection</h1><p>Upload drone photos or a prerecorded video of one turbine. Analysis starts as soon as you submit.</p></div></div>
 
 {% if not turbines %}
-<section class="panel"><div class="empty"><h3>Add a turbine first</h3><p>Inspections are filed under a turbine and blade.</p>
-  <a class="btn btn-primary" href="{{ url_for('turbines.new') }}">{{ icon("plus") }}Add a turbine</a></div></section>
+<section class="panel"><div class="empty"><h3>No turbines yet</h3>
+  {% if perm.can_manage_turbines() %}<p>Inspections are filed under a turbine and blade.</p>
+  <a class="btn btn-primary" href="{{ url_for('turbines.new') }}">{{ icon("plus") }}Add a turbine</a>
+  {% else %}<p>Inspections are filed under a turbine and blade, and only an admin can add turbines. Ask your admin to register the turbine first.</p>{% endif %}</div></section>
 {% else %}
 <form method="post" enctype="multipart/form-data" id="new-form">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

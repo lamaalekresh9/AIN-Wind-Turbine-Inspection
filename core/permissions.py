@@ -63,6 +63,11 @@ def can_create(user=None):
     return _role(user or current_user) in (INSPECTOR, ADMIN)
 
 
+def can_manage_turbines(user=None):
+    """Adding, editing and deleting turbines and blades is admin-only."""
+    return _role(user or current_user) == ADMIN
+
+
 def can_manage(insp, user=None):
     """Re-run analysis, re-run the VLM check, add notes: the owner while it isn't under review, or an admin."""
     user = user or current_user
@@ -161,6 +166,7 @@ class _Perm:
     can_view = staticmethod(can_view)
     is_owner = staticmethod(is_owner)
     can_create = staticmethod(can_create)
+    can_manage_turbines = staticmethod(can_manage_turbines)
     can_manage = staticmethod(can_manage)
     can_submit = staticmethod(can_submit)
     can_delete = staticmethod(can_delete)

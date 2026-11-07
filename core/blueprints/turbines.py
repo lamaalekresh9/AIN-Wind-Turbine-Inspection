@@ -59,7 +59,7 @@ def index():
 
 @bp.route("/turbines/new", methods=["GET", "POST"])
 @login_required
-@roles(INSPECTOR, ADMIN)
+@roles(ADMIN)
 def new():
     if request.method == "POST":
         t = Turbine()
@@ -105,7 +105,7 @@ def detail(tid):
 
 @bp.route("/turbines/<int:tid>/edit", methods=["GET", "POST"])
 @login_required
-@roles(INSPECTOR, ADMIN)
+@roles(ADMIN)
 def edit(tid):
     t = db.session.get(Turbine, tid) or abort(404)
     if request.method == "POST":
@@ -130,7 +130,7 @@ def edit(tid):
 
 @bp.route("/turbines/<int:tid>/delete", methods=["POST"])
 @login_required
-@admin_required
+@roles(ADMIN)
 def delete(tid):
     t = db.session.get(Turbine, tid) or abort(404)
     if t.inspections:
@@ -145,7 +145,7 @@ def delete(tid):
 
 @bp.route("/turbines/<int:tid>/blades", methods=["POST"])
 @login_required
-@roles(INSPECTOR, ADMIN)
+@roles(ADMIN)
 def save_blade(tid):
     t = db.session.get(Turbine, tid) or abort(404)
     f = request.form
@@ -181,7 +181,7 @@ def save_blade(tid):
 
 @bp.route("/turbines/<int:tid>/blades/<int:bid>/delete", methods=["POST"])
 @login_required
-@roles(INSPECTOR, ADMIN)
+@roles(ADMIN)
 def delete_blade(tid, bid):
     b = db.session.get(Blade, bid)
     if not b or b.turbine_id != tid:

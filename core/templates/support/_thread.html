@@ -1,0 +1,25 @@
+{# One support conversation. staff_view=True: admin's replies on the right; otherwise the requester's own messages are. #}
+{% macro thread(t, staff_view=False) %}
+<div class="thread">
+  {% set first_mine = not staff_view %}
+  <div class="msg {{ 'user' if first_mine else 'assistant' }}">
+    <div class="who"><b>{{ "You" if first_mine else t.name }}</b><span>{{ t.created_at|dt }}</span></div>
+    <div class="body" dir="auto" style="white-space:pre-line">{{ t.message }}</div>
+  </div>
+  {% for r in t.replies %}
+  {% set mine = (r.from_staff and staff_view) or (not r.from_staff and not staff_view) %}
+  <div class="msg {{ 'user' if mine else 'assistant' }}">
+    <div class="who"><b>{% if mine %}You{% elif r.from_staff %}Ain support{% if r.author %} · {{ r.author.name }}{% endif %}{% else %}{{ r.author.name if r.author else t.name }}{% endif %}</b><span>{{ r.created_at|dt }}</span></div>
+    <div class="body" dir="auto" style="white-space:pre-line">{{ r.body }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro ticket_state(t, staff_view=False) -%}
+{% if t.status == "closed" %}<span class="badge b-accepted">Resolved</span>
+{%- elif staff_view and t.awaiting_staff %}<span class="badge b-in_review">Needs reply</span>
+{%- elif not staff_view and t.unread_for_user %}<span class="badge b-processing">New reply</span>
+{%- elif t.last_staff_at and not t.awaiting_staff %}<span class="badge b-reviewed">Replied</span>
+{%- else %}<span class="badge">Waiting for support</span>{% endif %}
+{%- endmacro %}
