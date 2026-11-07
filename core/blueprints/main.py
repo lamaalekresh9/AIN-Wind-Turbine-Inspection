@@ -22,8 +22,16 @@ FAQS = [
      "Close-range RGB photos of the blade surface taken by a drone in daylight. The model was trained at 1024 px, so "
      "any resolution works, but blurry or very distant shots will miss small defects."),
     ("Which defects does Ain detect?",
-     "The current model detects three visible surface defect types: cracks, hidden crazing (fine hairline cracks under "
-     "the coating) and surface eyes (pinholes and pits). Internal damage that isn't visible in a photo is out of scope."),
+     "The current model detects eight visible surface defect types: corrosion/erosion, cracks, crazing, hidden crazing "
+     "(fine hairline cracks under the coating), surface damage (chips, gouges, peeled coating), surface eyes (pinholes "
+     "and pits), lightning damage and dirt/contamination. Internal damage that isn't visible in a photo is out of scope."),
+    ("How accurate is the model?",
+     "The model was trained on 70% of two public datasets (WTBD and GFD-YOLOX, 2,476 photos) and tested once on the "
+     "other 30%: 760 photos it had never seen. It reached 67% mAP@0.5 with 61% precision and 68% recall (78% mAP@0.5 on "
+     "the WTBD photos, 56% on the harder GFD photos). 5-fold cross-validation on the training data gave 66% ± 3%, so the "
+     "result is stable. Recall means it finds about two out of three marked defects, which is why a human reviewer "
+     "checks every image. Near-duplicate photos were kept on the same side of every split, so the score isn't inflated "
+     "by near-copies. Full results are on the admin Model page."),
     ("How does video analysis work?",
      "Ain samples one frame every N seconds (you choose N when you start the inspection), runs detection on each frame, "
      "then merges detections of the same defect across neighbouring frames so it appears once in the findings list."),
@@ -33,7 +41,7 @@ FAQS = [
     ("Who can review findings?",
      "Reviewers and admins. Inspectors can upload media and view results but can't approve findings or issue reports."),
     ("What does the VLM cross-check do?",
-     "After YOLO finds defects, a vision-language model (Gemini by default) looks at the same image and says, for each "
+     "After YOLO finds defects, a vision-language model (OpenAI by default) looks at the same image and says, for each "
      "box, whether it agrees there is a defect, thinks it's a different type, or sees no defect. The two scores are "
      "combined. Boxes the VLM disagrees with are flagged as likely false alarms, and clear defects YOLO missed are added "
      "as \"Found by VLM\". A reviewer still decides every finding."),
@@ -42,7 +50,7 @@ FAQS = [
      "why YOLO and the VLM disagree, how serious a defect is, what happens if it isn't repaired, or what maintenance to "
      "plan. Pick a finding on the right to ask about that one. On the Live detection page you can also ask about a single image."),
     ("Which AI writes the report?",
-     "A language model (Gemini by default) writes the Arabic report from the accepted findings and their evidence images. "
+     "A language model (OpenAI by default) writes the Arabic report from the accepted findings and their evidence images. "
      "If no API key is set or the free limit is reached, Ain falls back to fixed Arabic templates."),
     ("Can I edit the Arabic report?",
      "Yes. After the report is generated, reviewers can edit every section, save drafts, and export a PDF. Issuing the "

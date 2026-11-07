@@ -6,7 +6,8 @@ API keys go in the .env file (GEMINI_API_KEY / OPENAI_API_KEY), never in this fi
 from core import create_app
 
 # ============================ YOLO model ============================
-MODEL_PATH = "models/best.pt"   # trained YOLO weights
+MODEL_PATH = "models/best.pt"   # YOLO26m (Ain 10) trained on WTBD + GFD-YOLOX WTBlade (8 classes), 70/30 split + 5-fold CV;
+                                # its test results are in core/services/model_card.py
 
 CONFIDENCE = 0.25        # default confidence threshold (0.05 to 0.95)
                          # higher = fewer, surer boxes / lower = more boxes, more false alarms
@@ -15,10 +16,15 @@ CONFIDENCE = 0.25        # default confidence threshold (0.05 to 0.95)
 
 IOU = 0.7                # NMS IoU: lower merges overlapping boxes more aggressively
 MAX_DETECTIONS = 300     # max boxes per image
-IMAGE_SIZE = 1024        # inference size: the YOLO26l model was trained at 1024
+IMAGE_SIZE = 1024        # inference size: the YOLO26m model was trained at 1024
 DEVICE = ""              # "" = auto, "cpu", or "0" for the first GPU
 
 BLADE_SEG_MODEL_PATH = ""   # optional YOLO-seg blade model for masking; "" = off
+
+# ============================ Sample data ============================
+DEMO_DATA = True         # on the first run, load the sample inspections in demo_data/ (real test-set blade
+                         # photos with real model detections, in every workflow status). Runs once per database;
+                         # `flask --app app reset-db` starts over with them. False = start with an empty platform.
 
 # ===================== AI provider (VLM + LLM report) =====================
 AI_PROVIDER = "openai"            # "openai", "gemini" (free tier), or "none" (offline templates only)
@@ -42,7 +48,8 @@ VLM_MAX_CROPS = 8
 # Extra instructions for the VLM, in plain English. The full class guide (what each defect looks like and what
 # it must not be confused with) is in core/services/vlm_prompts.py.
 VLM_EXTRA_INSTRUCTIONS = """
-These images come from onshore wind farms in Saudi Arabia: expect sand and dust on the blades; dust alone is not a defect.
+These images come from onshore wind farms in Saudi Arabia: expect a light film of sand and dust on the blades.
+An even dust film is normal and not a defect; only a distinct patch of dirt, oil or residue is the "dirt" class.
 """
 
 # ----- 2) LLM inspection report -----
@@ -62,6 +69,7 @@ app = create_app({
     "MODEL_IMGSZ": IMAGE_SIZE,
     "MODEL_DEVICE": DEVICE,
     "BLADE_SEG_MODEL_PATH": BLADE_SEG_MODEL_PATH,
+    "DEMO_DATA": DEMO_DATA,
     "AI_PROVIDER": AI_PROVIDER,
     "GEMINI_MODEL": GEMINI_MODEL,
     "OPENAI_MODEL": OPENAI_MODEL,
@@ -87,4 +95,4 @@ app = create_app({
 
 if __name__ == "__main__":
     # use_reloader=False keeps background analysis threads from being started twice
-    app.run(host="127.0.0.1", port=5000, debug=True, use_reloader=False, threaded=True)
+    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False, threaded=True)

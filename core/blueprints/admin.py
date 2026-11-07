@@ -1,6 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
+from ..services.model_card import MODEL_CARD
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
@@ -230,6 +231,32 @@ def ai_test():
     return redirect(url_for("admin.system"))
 
 
+def _demo_status():
+    from .. import demo_data
+    try:
+        return demo_data.status(current_app)
+    except Exception:  # noqa: BLE001 - the page must render even if demo_data/ is odd
+        return None
+
+
+@bp.route("/demo-vlm", methods=["POST"])
+@login_required
+@admin_required
+def demo_vlm():
+    """Run the VLM on every sample inspection and save the verdicts into demo_data/ (see core/demo_data.py)."""
+    from .. import demo_data
+    if not ai_client.available():
+        flash("No AI key found. Add OPENAI_API_KEY (or GEMINI_API_KEY) to the .env file next to app.py and restart.",
+              "error")
+    elif demo_data.get_state().get("state") == "running":
+        flash("The VLM check of the sample inspections is already running.", "info")
+    else:
+        demo_data.start_vlm_all(current_app._get_current_object(), only_missing=request.form.get("redo") != "all")
+        audit("demo.vlm_started", "system", None, commit=True)
+        flash("Started. Each image takes a few seconds; this page updates by itself.", "info")
+    return redirect(url_for("admin.system") + "#sample-data")
+
+
 @bp.route("/system")
 @login_required
 @admin_required
@@ -241,4 +268,4 @@ def system():
                            model_size=round(mp.stat().st_size / 1e6, 1) if mp.exists() else None,
                            classes=class_catalog(names), ai=ai_client.status(),
                            seg=cfg["BLADE_SEG_MODEL_PATH"], seg_ready=detector.seg_available(cfg["BLADE_SEG_MODEL_PATH"]),
-                           cfg=cfg)
+                           cfg=cfg, card=MODEL_CARD, demo=_demo_status())

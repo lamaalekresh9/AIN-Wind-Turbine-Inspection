@@ -6,6 +6,8 @@ then reshaped (arabic_reshaper) and reordered (python-bidi) before drawing.
 from datetime import datetime
 from pathlib import Path
 
+import re
+
 import arabic_reshaper
 from bidi.algorithm import get_display
 from reportlab.lib import colors
@@ -40,8 +42,16 @@ def _register():
     _registered = True
 
 
+_ARABIC = re.compile("[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]")
+
+
 def shape(text):
-    return get_display(arabic_reshaper.reshape(text))
+    # base_dir="R": the paragraph is Arabic, so punctuation next to English words (site names, file names)
+    # stays on the correct side instead of jumping to the start of the line.
+    # Pure English/number text (codes, site names, dates) is drawn as is.
+    if not _ARABIC.search(text or ""):
+        return text
+    return get_display(arabic_reshaper.reshape(text), base_dir="R")
 
 
 class RTL(Flowable):

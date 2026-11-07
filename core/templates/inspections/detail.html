@@ -68,7 +68,13 @@
             <td class="code">{{ f.code }}</td>
             <td>{{ cls_label(f.class_name) }}{% if f.ai_class_name and f.ai_class_name != f.class_name %} <span class="small muted">(YOLO: {{ defect_info(f.ai_class_name).en }})</span>{% elif f.edited %} <span class="small muted">(re-boxed)</span>{% endif %}{% if f.source == 'manual' %} <span class="small muted">(added by reviewer)</span>{% endif %}</td>
             <td class="right num">{{ f.confidence|pct }}</td>
-            <td>{% if f.vlm_verdict %}<span class="badge vlm-{{ f.vlm_verdict }}" title="{{ f.vlm_reason }}">{{ f.vlm_label }}{% if f.vlm_verdict == 'relabeled' and f.vlm_class != f.class_name %}: {{ defect_info(f.vlm_class).en }}{% endif %}</span>{% else %}<span class="small muted">–</span>{% endif %}</td>
+            <td style="max-width:300px">{% if f.vlm_verdict %}<span class="badge vlm-{{ f.vlm_verdict }}">{{ f.vlm_label }}</span>
+              <div class="small" style="margin-top:4px">{% if f.vlm_verdict == 'relabeled' %}VLM: <b>{{ defect_info(f.vlm_class).en }}</b>{% if f.ai_class_name %}, not {{ defect_info(f.ai_class_name).en }}{% endif %}{% if f.vlm_class != f.class_name %} (type kept: {{ defect_info(f.class_name).en }}){% endif %}
+                {% elif f.vlm_verdict == 'rejected' %}VLM: <b>no defect here</b>
+                {% elif f.vlm_verdict == 'added' %}VLM: <b>{{ defect_info(f.vlm_class).en }}</b> that YOLO missed
+                {% else %}VLM: <b>{{ defect_info(f.vlm_class or f.class_name).en }}</b>{% endif %}{% if f.vlm_confidence is not none %} · {{ f.vlm_confidence|pct }} sure{% endif %}</div>
+              {% if f.vlm_reason %}<div class="small muted" style="margin-top:2px" title="{{ f.vlm_reason }}">“{{ f.vlm_reason|truncate(140) }}”</div>{% endif %}
+              {% else %}<span class="small muted">–</span>{% endif %}</td>
             <td class="right num">{{ f.fused_confidence|pct }}</td>
             <td>{{ sev_badge(f.severity) }}</td>
             <td class="small">{{ f.frame.label }}{% if f.occurrences > 1 %}<div class="muted">Seen in {{ f.occurrences }} frames, {{ fmt_ts(f.first_ts) }}–{{ fmt_ts(f.last_ts) }}</div>{% endif %}</td>
@@ -155,7 +161,7 @@
           <dt>Frames analyzed</dt><dd>{{ insp.frames|length }}</dd>
           {% if insp.media|selectattr('kind','equalto','video')|list %}<dt>Frame interval</dt><dd>{{ insp.frame_interval_s }} s</dd>{% endif %}
           <dt>Processing time</dt><dd>{{ insp.processing_seconds }} s</dd>
-          <dt>VLM check</dt><dd>{% if insp.vlm_status in ("done", "partial") %}{{ insp.vlm_model }}: {{ insp.vlm_frames_checked }} frame{{ 's' if insp.vlm_frames_checked != 1 }}, {{ insp.findings|selectattr('vlm_verdict','in',['confirmed','relabeled'])|list|length }} confirmed, {{ insp.findings|selectattr('vlm_verdict','equalto','rejected')|list|length }} disputed, {{ insp.vlm_added or 0 }} added{% elif insp.vlm_status == "running" %}Running{% elif insp.vlm_status == "failed" %}<span style="color:var(--bad)">Failed</span>{% if insp.vlm_note %}<div class="small muted">{{ insp.vlm_note }}</div>{% endif %}{% else %}Off{% endif %}</dd>
+          <dt>VLM check</dt><dd>{% if insp.vlm_status in ("done", "partial") %}{{ insp.vlm_model }}: {{ insp.vlm_frames_checked }} frame{{ 's' if insp.vlm_frames_checked != 1 }}, {{ insp.findings|selectattr('vlm_verdict','equalto','confirmed')|list|length }} confirmed, {{ insp.findings|selectattr('vlm_verdict','equalto','relabeled')|list|length }} relabelled, {{ insp.findings|selectattr('vlm_verdict','equalto','rejected')|list|length }} disputed, {{ insp.vlm_added or 0 }} added{% elif insp.vlm_status == "running" %}Running{% elif insp.vlm_status == "failed" %}<span style="color:var(--bad)">Failed</span>{% if insp.vlm_note %}<div class="small muted">{{ insp.vlm_note }}</div>{% endif %}{% elif insp.vlm_enabled %}Not run yet{% else %}Off{% endif %}</dd>
           <dt>Drone</dt><dd>{{ insp.drone_model or "-" }}</dd>
           <dt>Weather</dt><dd>{{ insp.weather or "-" }}</dd>
           <dt>Uploaded by</dt><dd>{{ insp.created_by.name if insp.created_by else "-" }}</dd>

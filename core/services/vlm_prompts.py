@@ -19,7 +19,8 @@ Normal features that are NOT defects (reject boxes on these unless there is visi
 - Leading-edge protection tape or shells, and their straight overlapping seams.
 - Paint seams, mould lines, straight factory joints, filler patches that are smooth and intact.
 - Red/orange warning stripes at the tip, logos, stickers, serial numbers, markings, bolts at the root.
-- Dirt, dust, insect residue, bird droppings or water streaks lying ON an intact surface (no exposed material).
+- A light, even film of dust or sand over the whole blade (normal in desert sites). If a "dirt" class is allowed,
+  a distinct patch of dirt, oil, insect residue or droppings IS labelled "dirt" (low severity); otherwise reject it.
 - Water droplets, rain, condensation, oil film that only reflects light.
 - Shadows (including the drone's), glare and specular highlights, lens flare, motion blur, JPEG blocks, sensor noise.
 - Anything that is not the blade: sky, clouds, tower, nacelle, hub, ground, sand, vegetation, buildings.
@@ -37,10 +38,23 @@ CLASS_GUIDE = {
         "not": [
             "a straight, perfectly regular line = paint seam, tape edge or mould line (reject)",
             "a soft-edged dark band that follows the blade curvature = shadow (reject)",
-            "a fine NETWORK of many short hairlines = hide_craze (relabel)",
+            "a fine NETWORK of many short hairlines = craze (clearly visible) or hide_craze (faint, under the coating) (relabel)",
             "a hair, cable, or the tower/sky edge seen behind the blade (reject)",
         ],
         "severity_hint": "long, wide, branching or open cracks, or cracks at the root / trailing edge bond line = high",
+    },
+    "craze": {
+        "looks_like": [
+            "a clearly VISIBLE web or mesh of fine hairline cracks on the coating surface, like crazed glaze on pottery",
+            "the lines are sharp and easy to see in normal light; the coating may look dull or slightly raised along them",
+            "covers a patch area rather than a single line",
+        ],
+        "not": [
+            "the same mesh but faint, only visible at a low light angle, under a glossy intact coating = hide_craze (relabel)",
+            "one dominant dark line = crack (relabel)",
+            "parallel scratches or sanding marks (reject, or surface_injure if the coating is broken)",
+        ],
+        "severity_hint": "small patch = low/medium; large area or flaking coating = medium/high",
     },
     "hide_craze": {
         "looks_like": [
@@ -51,6 +65,7 @@ CLASS_GUIDE = {
         ],
         "not": [
             "one dominant dark line = crack (relabel)",
+            "a clearly visible, sharp mesh on the surface = craze (relabel)",
             "scratches that are all parallel = handling scratches / sanding marks (reject unless coating is broken)",
             "dirt streaks or water marks that wipe-off-looking, with no crack pattern (reject)",
         ],
@@ -70,6 +85,59 @@ CLASS_GUIDE = {
             "a hole with ragged material loss along the leading edge = erosion if that class exists",
         ],
         "severity_hint": "a few pinholes = low; dense clusters or pits that expose laminate = medium",
+    },
+    "corrosion": {
+        "looks_like": [
+            "rough, pitted, matt or flaking coating, most often along the leading edge, sometimes exposing grey/yellow laminate",
+            "irregular patches of material loss with ragged edges, not a clean line",
+            "can be spread over a band along the edge rather than a single spot",
+        ],
+        "not": [
+            "dirt or insect build-up sitting on an intact leading edge = dirt (relabel) or reject",
+            "leading-edge protection tape seams or overlaps that are straight and intact (reject)",
+            "a few isolated tiny round pits = surface_eye (relabel)",
+            "a fresh mechanical gouge, chip or scratch = surface_injure (relabel)",
+        ],
+        "severity_hint": "coating only = low/medium; exposed fibres or laminate = high",
+    },
+    "dirt": {
+        "looks_like": [
+            "a distinct patch or streak of dirt, mud, oil, insect residue or bird droppings ON the surface",
+            "the coating underneath is intact: no material loss, no cracks, no raised edges",
+            "often darker or brownish, with soft blotchy edges",
+        ],
+        "not": [
+            "a light even film of dust over the whole blade (reject: normal in desert sites)",
+            "shadows, reflections or water droplets (reject)",
+            "dark material with rough edges or missing coating = corrosion (relabel)",
+            "black scorch marks near a lightning receptor = thunderstrike (relabel)",
+        ],
+        "severity_hint": "almost always low; medium if it looks like an oil leak from the hub/pitch system",
+    },
+    "surface_injure": {
+        "looks_like": [
+            "mechanical surface damage: a chip, gouge, dent, deep scratch, scrape or a patch of peeled/missing coating",
+            "usually a single localized area with sharp edges, where lighter filler or laminate may show",
+        ],
+        "not": [
+            "rough pitted material loss along the leading edge = corrosion (relabel)",
+            "a thin continuous fracture line = crack (relabel)",
+            "dirt or stains with no broken surface = dirt (relabel) or reject",
+            "painted markings, stickers or tape (reject)",
+        ],
+        "severity_hint": "coating only = low/medium; laminate exposed or large area = high",
+    },
+    "thunderstrike": {
+        "looks_like": [
+            "burn marks, black or brown scorching, soot, melted or delaminated material",
+            "often near the tip or around a lightning receptor; can come with cracks or a split trailing edge",
+        ],
+        "not": [
+            "a clean, intact metal lightning receptor disc (reject)",
+            "dark dirt or oil streaks with no burn or material damage = dirt (relabel)",
+            "a shadow or the warning-stripe paint at the tip (reject)",
+        ],
+        "severity_hint": "almost always high: hidden internal damage is likely",
     },
     "erosion": {
         "looks_like": ["roughened, pitted or missing coating along the leading edge, sometimes exposing laminate"],

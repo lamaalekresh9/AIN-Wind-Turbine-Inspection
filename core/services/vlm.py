@@ -151,6 +151,9 @@ def apply_result(finding, res, user_note_prefix="VLM"):
     finding.fused_confidence = fuse(finding.confidence, res["verdict"], res["confidence"])
     if res["verdict"] == "relabeled" and _cfg("VLM_RELABEL", True) and res["confidence"] >= (finding.confidence or 0):
         finding.class_name = res["class"]
+        if finding.status == "pending":          # the starting severity follows the corrected type
+            finding.severity = default_severity(finding.class_name,
+                                                (finding.x2 - finding.x1) * (finding.y2 - finding.y1))
     if (res["verdict"] == "rejected" and _cfg("VLM_AUTO_REJECT", False)
             and finding.fused_confidence < float(_cfg("VLM_MIN_FUSED", 0.35)) and finding.status == "pending"):
         finding.status = "rejected"

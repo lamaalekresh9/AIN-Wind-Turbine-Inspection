@@ -1,434 +1,304 @@
-# AIN (عين) — AI-Powered Wind Turbine Blade Inspection Platform
+# AIN (عين) — AI-Powered Wind Turbine Blade Inspection
 
-**Senior Graduation Project · Prince Sultan University · College of Computer and Information Sciences · 2026–2027**
+**Senior Project | Prince Sultan University | Academic Year 2026–2027**
 
-**Team:** Lama Bin Ekresh · Danyah Alsabti · Norah Aljasser · Yara Altwajari · Tala Alothaim  
-**Supervisor:** Dr. Fatimah Alshannaq
+AIN is a Flask-based platform for visual inspection of wind turbine blades from uploaded UAV/drone images and videos. It combines **YOLO26m object detection**, optional **vision-language model (VLM) cross-checking**, **human review**, and editable **Arabic inspection reports** with PDF export. The platform also includes an inspection-aware AI assistant and a live detection interface.
 
-AIN is a Flask web platform for **AI-assisted visual inspection of wind turbine blades** in UAV-captured images and videos. It connects **YOLO-based detection**, **vision-language model (VLM) verification**, **human review**, and **large language model (LLM)–assisted Arabic reporting** in a traceable workflow.
+> **Scope:** AIN is a decision-support prototype for **visible surface defects**. A model prediction, VLM response, or generated recommendation is **not** a certified structural assessment. A qualified reviewer must inspect findings before a report is issued.
 
-> **For examiners:** `models/best.pt` is included for local YOLO inference. The VLM, generative Arabic reporting, and Ask AIN require credentials for a supported AI provider. **No API keys are included in this repository.** Examiners can contact the project team directly for a key provided privately. See [Run AIN locally](#run-ain-locally) and [Examiner testing and API access](#examiner-testing-and-api-access).
->
-> **Scope:** AIN is an academic decision-support prototype, **not** an autonomous safety certification or a replacement for qualified blade inspection.
+## At a glance
 
-## Contents
+| Component | Current implementation |
+|---|---|
+| Web application | Python, Flask, Flask-Login, Flask-SQLAlchemy, SQLite; HTML/CSS/JavaScript |
+| Primary detector | **YOLO26m**, Ultralytics, 1024-pixel inference, `models/best.pt` |
+| Defect taxonomy | **8 classes**, from merged WTBD + GFD-YOLOX WTBlade data |
+| AI verification | Optional OpenAI/Gemini VLM, rule-based confidence fusion, human decisions |
+| Reporting | Arabic LLM-assisted or offline-template draft, reviewer editing, RTL PDF |
+| Roles | Inspector, Reviewer, Administrator; server-side authorization |
+| Demo | Seeded accounts, **11 sample inspections**, **39 demonstration images** |
 
-- [Overview and objectives](#overview-and-objectives)
-- [Key features](#key-features)
-- [Defect classes](#defect-classes)
-- [Workflow and AI architecture](#workflow-and-ai-architecture)
-- [Users and approval process](#users-and-approval-process)
-- [Technology and repository layout](#technology-and-repository-layout)
-- [Run AIN locally](#run-ain-locally)
-- [Examiner testing and API access](#examiner-testing-and-api-access)
-- [Model evaluation](#model-evaluation)
-- [Screenshots](#screenshots)
-- [Troubleshooting](#troubleshooting)
-- [Limitations and responsible use](#limitations-and-responsible-use)
-- [Team and acknowledgment](#team-and-acknowledgment)
+## Application screenshots
 
-## Overview and objectives
+These images show the **AIN web application and its seeded demonstration cases**. The saved example detections and VLM responses were prepared with an earlier eight-class checkpoint and should **not** be interpreted as Ain 10 evaluation predictions. New analyses run the checkpoint currently configured in `models/best.pt` (see the [seed-data note](#seeded-demo-data--important-model-distinction)).
 
-UAV inspections can capture large volumes of blade imagery without requiring personnel to work at height, but manually finding and documenting defects is time-consuming. AIN supports the steps **after image capture**: it identifies candidate surface defects, links them to their visual evidence, permits human verification, and prepares editable Arabic inspection reports.
+### 1. Landing page
 
-The project aims to:
+![AIN landing page](docs/images/landing-page.jpg)
 
-1. Detect and localize selected **visible** blade-surface defects in images and sampled video frames.
-2. Preserve findings with classes, bounding boxes, confidence scores, source images, and video timestamps where applicable.
-3. Cross-check candidate detections with a VLM and highlight disagreements.
-4. Consolidate repeated observations of the same apparent defect across neighboring video frames.
-5. Separate inspectors' work from reviewers' approvals through role-based permissions.
-6. Generate editable **Arabic reports** and right-to-left PDFs from reviewed findings.
-7. Offer an inspection-aware assistant for questions about results and evidence.
+### 2. Reviewer dashboard
 
-## Key features
+![AIN reviewer dashboard and inspection queue](docs/images/review-dashboard.jpg)
 
-| Feature | What AIN provides |
-| --- | --- |
-| Image and prerecorded-video inspections | Upload media for a selected turbine and blade; sample video frames for analysis. |
-| YOLO detection | Bounding boxes, predicted class labels, and detection confidence. |
-| VLM cross-check | Confirms, relabels, or rejects candidates; can suggest additional findings for review. |
-| Evidence tracking | Associates findings with images or timestamped frames and inspection records. |
-| Video deduplication | Consolidates repeated nearby-frame detections to reduce redundant findings. |
-| Human-in-the-loop review | A separate reviewer accepts, edits, rejects, or flags findings before report issuance. |
-| Arabic reporting | Once the reviewer resolves findings and approves the inspection, an Arabic draft can be generated even if all individual findings were rejected. With no accepted findings, the system uses an Arabic template. The reviewer can edit and issue it; the inspector then gains access. |
-| Ask AIN | Inspection-specific Q&A in Arabic or English, using accessible findings and evidence. |
-| Role-specific dashboards | Inspector, human reviewer, and administrator views and access rules. |
-| Live detection | Separate interactive camera/image/video detection page; it does **not** replace the saved review-and-report workflow. |
+### 3. Inspection AI results
 
-## Defect classes
+![AIN inspection annotated detections and finding counts](docs/images/inspection-results.jpg)
 
-The included detection model, `models/best.pt`, uses three **dataset-specific** classes:
+### 4. YOLO + VLM evidence and confidence fusion
 
-| Label | Description |
-| --- | --- |
-| `crack` | Visible surface crack or fracture-like mark. |
-| `hide_craze` | Fine crazing or subtle crack-like surface pattern. |
-| `surface_eye` | Localized surface-eye pattern as labeled in the training dataset. |
+![AIN finding-by-finding YOLO and VLM review evidence](docs/images/findings-vlm-fusion.jpg)
 
-These are **model labels**, not an exhaustive engineering classification. RGB imagery alone cannot determine internal damage or crack depth.
+### 5. Ask AIN inspection-aware assistant
 
-## Workflow and AI architecture
+![Ask AIN inspection chatbot](docs/images/ask-ain-chat.jpg)
 
-```text
-Inspector uploads blade images / videos
-                   |
-                   v
-       YOLO detects candidate defects
-                   |
-                   v
-        Optional VLM cross-check
-                   |
-                   v
-        Inspector submits inspection
-                   |
-                   v
-     Human reviewer decides on EVERY finding
-       Accept / Edit / Reject / Uncertain
-                   |
-                   v
-      Reviewer confirms review of inspection
-             /                  \
-            v                    v
-  APPROVE INSPECTION       REJECT WHOLE INSPECTION
-            |                    |
-            v                    v
-  Generate Arabic draft   Return to inspector for
-  report, even if all     correction / resubmission
-  findings were rejected  (no report generated at
-            |             this rejected status)
-            v
-  If accepted findings: LLM-assisted report
-  If zero accepted findings: Arabic template report
-            |
-            v
-  Reviewer edits and ISSUES the final report
-            |
-            v
-  Inspector views/downloads the ISSUED Arabic PDF
+### 6. Arabic inspection report
+
+![AIN reviewer-issued Arabic inspection report](docs/images/arabic-report.jpg)
+
+> **Demo note:** The illustrated issued report is explicitly marked as generated using **Arabic templates**. LLM-assisted report generation is also supported when enabled and a provider is configured. Reviewer approval remains required for issuing a report.
+
+## Eight detected defect classes
+
+| Class (model label) | General description |
+|---|---|
+| `corrosion` | Corrosion-related visible deterioration |
+| `crack` | Visible crack or fracture line |
+| `craze` | Fine, shallow-looking cracking/crazing patterns |
+| `dirt` | Distinct surface dirt, residue, or contamination patch |
+| `hide_craze` | Dataset-specific hidden/faint craze appearance |
+| `surface_eye` | Dataset-specific eye-like surface defect/mark |
+| `surface_injure` | Visible damage to the blade surface |
+| `thunderstrike` | Visible lightning-strike-related damage (dataset label) |
+
+These are **dataset class labels**, not an assertion that image-only analysis can establish damage depth or cause. In particular, the meaning of `hide_craze` and `surface_eye` follows the source annotations.
+
+## Dataset and training methodology — Ain 10
+
+The eight-class **Ain 10** experiment uses **YOLO26m** with COCO-pretrained initialization, trained at **1024 × 1024 px**. The following dataset, training and result details are taken from the team's *Ain 10: Defect Detection Model — Results, Methodology and Web-App Integration* (7 November 2026) and are consistent with the values entered in `core/services/model_card.py`. The underlying training CSVs and notebook are held on the team Drive, **not** bundled in this repository.
+
+### Source datasets and label harmonization
+
+| Dataset | Images used | Original classes | Source annotation format |
+|---|---:|---|---|
+| WTBD (Wind Turbine Blade Defect) | **1,065** | corrosion, crack, craze, hide_craze, surface_injure, thunderstrike | Pascal VOC XML, annotator 1 |
+| GFD-YOLOX WTBlade | **1,411** | corrosion, hide_craze, thunderstrike, dirt, surface_eye | Pascal VOC XML |
+| **Merged** | **2,476** | **8 distinct classes; 4,431 labeled boxes** | Unified eight-class labels |
+
+GFD originally contained 1,746 images; **335 near-copies of WTBD images were removed** before merging. The spelling of GFD's `hide-craze` and `surface-eye` was normalized to `hide_craze` and `surface_eye`. Equivalent classes shared by both sources (`corrosion`, `hide_craze`, `thunderstrike`) were merged; unique classes were retained. Only WTBD's first annotator was used for training; second-annotator labels were reserved for a separate agreement analysis.
+
+The class distribution remains **imbalanced** (for example, `hide_craze` has 1,467 boxes versus 206 for `surface_eye`). **No class weights, oversampling, undersampling or loss reweighting** were applied. The splitting procedure aimed to preserve dataset/class representation across partitions; it did not equalize the underlying class frequencies. This differs from the earlier three-class Roboflow experiments, and their augmentation/split claims must **not** be attributed to Ain 10.
+
+### Preventing near-duplicate leakage
+
+Before splitting, images were grouped by perceptual similarity to keep rotated, mirrored, cropped or augmented variants on the same side of a split:
+
+1. Compute a **256-bit 16 × 16 grayscale difference-from-mean perceptual hash** for each of eight rotation/flip orientations.
+2. Treat two images as near-duplicates when the minimum **Hamming distance is ≤ 20 bits**, and transitively merge matched pairs using union-find.
+3. Keep related GFD source/augmentation images together, and also join near-duplicate groups across WTBD and GFD.
+4. Allocate entire groups—not individual images—to training, cross-validation or test. The reported audit found **zero near-duplicate pairs** crossing the test/development boundary or any validation/training fold boundary under this hash-based criterion.
+
+The locked **held-out test set** contains **760 images (30.7%)** and **1,343 labeled boxes**, including **316 WTBD** and **444 GFD** images. The remaining **1,716 images (69.3%)** form the training/CV pool. Group-stratified allocation targeted approximately 30% of images and (dataset, class) boxes in test; the **GFD `dirt` test-box share was only 17%**, because its examples were concentrated in large near-duplicate groups. Split fingerprint: `14f5b1163bc61e7e`.
+
+**Important limitation:** a large connected near-duplicate group of **923 images** (629 GFD + 294 WTBD) was assigned to **training only** to avoid crossing split boundaries. These images were **never in validation or test**. The remaining 793 development-pool images were divided into five rotating validation folds (approximately **156–160 validation images per fold**); each fold model trained on the other four folds **plus the 923 always-train images**. The team notes that the exact visual relationships inside this very large group have not all been manually audited. Thus the test assessment covers the remaining hold-out distribution rather than every type of image in the original corpus.
+
+### Five-fold cross-validation and final training
+
+- **Five fold models:** each trained for up to **120 epochs** with early stopping (`patience=30`), selecting the best validation checkpoint on its own fold.
+- **Final epoch count:** the median best epoch from the five folds, **98**; the held-out test set was not used to choose it.
+- **Final model:** trained once on **all 1,716 development-pool images** for exactly **98 epochs**, with `val=False`; the **last-epoch weights (`last.pt`)** were used as the final model, not a validation-selected `best.pt` from that final run. The application file is named `models/best.pt`, so that filename **does not establish** how the weights were selected. Confirm the file is the exported Ain 10 last-epoch checkpoint before claiming that the deployed weights reproduce the scores below.
+- **Configuration:** Ultralytics **8.4.157**, PyTorch **2.14.1** / CUDA **13.0**, NVIDIA **A100 40 GB**; batch **8**; optimizer **AdamW**, initial LR **0.001**; cosine LR schedule; seed **0**, deterministic training.
+- **Augmentation:** mosaic (`1.0`, disabled in the final 15 epochs), horizontal and vertical flips (`p=0.5` each), scaling (`±0.5`), and default HSV/translation jitter; rotation and mixup were set to **0**.
+- **Evaluation settings:** 1024 px, validator confidence **0.001**, NMS IoU **0.6**. The application instead defaults to confidence **0.25** and NMS IoU **0.7**; these settings serve different purposes.
+
+### Held-out test results — Ain 10 (YOLO detector only)
+
+| Test subset | Images | Labeled boxes | Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
+|---|---:|---:|---:|---:|---:|---:|
+| **Combined WTBD + GFD** | **760** | **1,343** | **0.612** | **0.681** | **0.667** | **0.369** |
+| WTBD only | 316 | 481 | 0.833 | 0.724 | 0.775 | 0.421 |
+| GFD only | 444 | 862 | 0.528 | 0.615 | 0.555 | 0.301 |
+
+The headline precision/recall are the Ultralytics validator's selected operating-point values, **not** necessarily the application's fixed-threshold behavior. Using the app confidence **0.25** (one-to-one box match at IoU 0.5), **combined precision = 0.664** and **recall = 0.614**; WTBD **0.733/0.728** and GFD **0.640/0.482**. The test results use a distinct test set and should not be directly compared as if head-to-head with the previous three-class Roboflow results. In particular, the earlier random-split result was contaminated by near-duplicate leakage and is **not a valid benchmark**.
+
+### Cross-validation results
+
+Each fold's metrics below are computed on **that model's unseen validation fold** (mean ± standard deviation across five folds):
+
+| Validation subset | Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
+|---|---:|---:|---:|---:|
+| **Combined** | **0.620 ± 0.053** | **0.634 ± 0.041** | **0.661 ± 0.030** | **0.325 ± 0.005** |
+| WTBD | 0.796 ± 0.071 | 0.719 ± 0.049 | 0.777 ± 0.055 | 0.415 ± 0.027 |
+| GFD | 0.451 ± 0.096 | 0.541 ± 0.052 | 0.491 ± 0.045 | 0.191 ± 0.015 |
+
+As an *additional stability check*, the five fold models were also scored on the same held-out test data; their **combined test mAP@0.5 was 0.641 ± 0.010** (not the final model's score). The final model scored **0.667**. These repeated test evaluations are descriptive checks, not separate independent test sets.
+
+### Per-class detection performance
+
+The experiment exported **AP@0.5** per class (not per-class precision/recall or mAP@0.5:0.95):
+
+| Class | Test boxes | AP@0.5 overall | WTBD AP@0.5 | GFD AP@0.5 |
+|---|---:|---:|---:|---:|
+| `corrosion` | 416 | 0.349 | 0.448 | 0.323 |
+| `crack` | 68 | 0.853 | 0.856 | — |
+| `craze` | 77 | 0.840 | 0.913 | — |
+| `dirt` | 41 | 0.898 | — | 0.902 |
+| `hide_craze` | 457 | 0.630 | 0.788 | 0.576 |
+| `surface_eye` | 62 | 0.231 | — | 0.233 |
+| `surface_injure` | 126 | 0.776 | 0.838 | — |
+| `thunderstrike` | 96 | 0.762 | 0.806 | 0.740 |
+
+The weakest classes are **`surface_eye` (0.231)** and **`corrosion` (0.349)**. These results are for **YOLO detection alone**. The VLM, LLM-generated reporting, and subsequent human review were **not quantitatively evaluated** in the Ain 10 experiment, so their impact must not be presented as a measured improvement in model accuracy.
+
+**Evaluation caveats:** the final 98-epoch training run's internally printed training-set metrics (including mAP@0.5 ≈ 0.907) **must not** be reported as test performance; the model used a single random seed; the 923 always-train images were not independently evaluated; and faint/small or cross-dataset defects remain a limitation. The figures in this README are drawn from the supplied results/methodology report and `model_card.py`. The experiment's raw result files (`results_test_final.csv`, `results_cv.csv`, `per_class_final.csv`, `summary.json` and `run_manifest.json`) are **not present here**, so the scores cannot be independently reproduced from the published code alone.
+
+### Application inference thresholds
+
+The app uses a **default YOLO confidence threshold of 0.25**, **NMS IoU of 0.70**, at most **300 detections per image**, and **1024 px inference** (`app.py`). Inspectors may change confidence for an inspection or live session. Do not confuse the application's confidence threshold with the **0.001 validator threshold** or with defect severity.
+
+## End-to-end inspection workflow
+
+```mermaid
+flowchart TD
+  A[Inspector signs in and creates inspection] --> B[Uploads blade images or video]
+  B --> C[YOLO26m detects and localizes visible defects]
+  C --> D[Optional VLM verifies, relabels, rejects, or proposes missed findings]
+  D --> E[Inspector reviews preliminary results and submits]
+  E --> F[Reviewer examines each finding]
+  F --> G{Whole inspection decision}
+  G -->|Reject inspection with reason| H[Returned to inspector for correction and resubmission]
+  H --> E
+  G -->|Approve inspection; all finding decisions resolved| I[Reviewer generates Arabic draft report]
+  I --> J[Reviewer edits and issues report]
+  J --> K[Inspector can view issued report and PDF]
 ```
 
-**Finding rejection and inspection rejection are different actions:**
+**Two kinds of rejection are different:**
 
-- **Reject one or all individual findings:** This does **not** prevent report generation. Once the reviewer resolves all findings and approves the inspection, they can generate an Arabic draft. Only accepted findings are described as verified defects.
-- **Zero accepted findings:** The application generates an **Arabic template-based report** documenting that no defects were approved. It does **not** call the LLM for this zero-accepted-findings case. A reviewer can still edit and issue this report.
-- **Reject the entire inspection:** The separate **Reject the whole inspection** action returns the inspection to the inspector for correction/resubmission. The application blocks generating a report while the inspection has that rejected status.
-- **Draft versus issued report:** The reviewer can generate/download a draft; the inspector can view/download the report only after the reviewer **issues** it.
+1. **Rejecting a finding** marks that detection as not accepted. A reviewer can reject **every individual finding** and still **approve the whole inspection** after resolving the review. A report can then be generated; with **zero accepted findings**, the code produces an **Arabic template-based draft** stating that there are no approved visible findings. It does **not** fabricate an LLM diagnosis.
+2. **Rejecting the entire inspection** (for example, inadequate images) returns it to the inspector. Report generation is blocked in that whole-inspection-rejected state until the inspector corrects/resubmits and the reviewer completes review.
 
-For example, the project team tested an inspection with **two YOLO detections, both individually rejected**. AIN generated an Arabic **draft** reporting zero accepted defects. This demonstrates report generation after *finding rejection*, not after *whole-inspection rejection*.
+Only **accepted findings** are included as defect findings in the report. A report is a **draft** until a reviewer issues it; the inspector can access the **issued** report, not the reviewer's unissued draft. Reviewer/admin permissions are enforced on the server.
 
-### YOLO: candidate detection
+### VLM cross-check and confidence fusion
 
-The local Ultralytics/PyTorch detector supplies candidate regions, defect labels, and confidence scores. The model weights are stored in `models/best.pt`; inference is implemented in `core/services/detector.py`. Model path, image size, threshold, NMS IoU, and compute-device settings are documented in `app.py`. A low detection confidence is **not** a measure of structural safety.
+If enabled and a provider is configured, the VLM examines YOLO detections, annotated images and optional cropped evidence. For each detection it may **confirm**, **relabel**, or **reject** a box; it may also propose a missed defect. The configured fusion heuristic has `w = 0.4` (`app.py`):
 
-### VLM: visual verification and confidence fusion
+| VLM response | Combined score heuristic |
+|---|---|
+| Confirmed or relabeled | `(1 − w) × YOLO_conf + w × VLM_conf` |
+| Rejected | `(1 − w) × YOLO_conf + w × (1 − VLM_conf)` |
+| VLM-added finding | `w × VLM_conf` |
 
-With an external AI provider configured, annotated detections and (when enabled) crops can be sent to a VLM. Its documented outcomes are:
+With `VLM_MIN_COMBINED = 0.35`, low-scoring VLM-rejected boxes can be flagged as likely false positives; `VLM_AUTO_REJECT = False` by default, so they remain available for human adjudication. `VLM_MISSED_MIN_CONF = 0.60` limits newly proposed missed findings. These combined values are **heuristics, not calibrated probabilities or independently validated accuracy metrics**. Human review remains the final gate.
 
-| VLM outcome | Interpretation |
-| --- | --- |
-| **Confirmed** | Supports the YOLO class. |
-| **Relabeled** | Suggests another supported class. |
-| **Rejected** | Does not support the proposed detection. |
-| **Added** | Proposes a candidate that YOLO may have missed. |
+### Arabic reporting and Ask AIN
 
-The implementation uses a **heuristic weighted fusion score**. With YOLO confidence \(Y\), VLM confidence \(V\), and weight \(w = \texttt{VLM_WEIGHT}\) (documented default `0.4`):
+For an approved inspection with accepted findings and a configured AI provider, the report writer can use an LLM to draft Arabic summaries, defect-level evidence descriptions, risk considerations and maintenance suggestions. With no key, AI reporting disabled, or **zero accepted findings**, it uses Arabic templates. The reviewer can edit the draft, issue it and export an RTL PDF.
 
-| Outcome | Documented score |
-| --- | --- |
-| Confirmed / relabeled | `(1 - w) × Y + w × V` |
-| Rejected | `(1 - w) × Y + w × (1 - V)` |
-| Added by VLM | `w × V` |
+**Ask AIN** is an inspection-aware assistant that can use saved findings, confidences, VLM responses, reviewer decisions and selected evidence crops. Answers are guidance, not a substitute for human inspection. A live image detection interface with optional VLM cross-check is also available; live detections are not automatically saved as inspections.
 
-Reviewers can examine disagreements and low-score findings. **This score is not a calibrated probability or an independent performance metric.** The VLM decision never substitutes for human approval. Verification logic and prompts are in `core/services/vlm.py`, `core/services/vlm_prompts.py`, and `core/services/ai_client.py`. The prompts include examples of **normal blade features**—such as lightning receptors, drain holes, seams, shadows, dirt, and glare—that may resemble damage.
+## User roles
 
-> **Implementation note:** The verdict-specific formulas were checked against `core/services/vlm.py` in the supplied AIN project. The configured default weight is `0.4` in `app.py`. This fused score is heuristic and should not be interpreted as calibrated model accuracy.
+| Role | Main permissions |
+|---|---|
+| **Inspector** | Create/upload inspections, inspect detections, use chat and live mode, download own evidence, submit/resubmit after whole-inspection rejection, view issued reports for own inspections |
+| **Reviewer** | View submitted inspections, resolve findings (including editing/rejecting), add findings, approve or reject entire inspections, generate/edit/issue reports |
+| **Administrator** | Manage users, turbines, settings and audit information; access review and report tools |
 
-### LLM: Arabic reporting and Ask AIN
+**All new users who sign up through `/signup` are automatically created as Inspectors.** Reviewer and Admin permissions are not selectable during public sign-up; authorized administration is required to change roles.
 
-After all findings have been reviewed and the **inspection has been approved**, the reviewer can generate an Arabic report. The LLM uses **accepted findings** and their supporting evidence; rejected findings are excluded as confirmed defects. If the LLM is disabled, unavailable, or fails, the application can generate an Arabic template report instead. If **no findings are accepted**, the report writer uses the template fallback rather than an LLM call. The reviewer can edit the draft and issue it; only then can the owning inspector view/download the report. **Rejecting an entire inspection does not allow report generation until it is corrected and approved.**
+## Installation — macOS / Linux
 
-**Ask AIN** provides questions and answers in Arabic or English using the relevant inspection's finding classes, model confidences, VLM verdicts/reasons, review status, notes, and available evidence. See `core/services/chat.py`, `core/services/report_writer.py`, `core/services/knowledge.py`, and `core/services/pdf.py`.
-
-## Users and approval process
-
-AIN enforces role and ownership restrictions on the server, not only by hiding navigation elements. Authorization logic is located in `core/permissions.py`.
-
-| Role | Main capabilities | Restrictions |
-| --- | --- | --- |
-| **Inspector** | Create inspections; upload media; run/view detections; download evidence; use Ask AIN; submit for review; view an **issued** Arabic report for an owned inspection. | Cannot perform reviewer decisions, manage users, or inspect other inspectors' private records. |
-| **Human reviewer** | See submitted inspections; inspect YOLO/VLM evidence; accept/edit/reject/flag individual findings; approve or reject the whole inspection; generate, edit and issue a report **only after inspection approval**. | Cannot see unsubmitted drafts or manage users. |
-| **Administrator** | Manage users and roles, settings, audit information, and authorized review/report functions. | Administrative accounts should be restricted to trusted users. |
-
-**Inspection lifecycle:** `Upload → YOLO/VLM analysis → Inspector submits → Reviewer resolves each finding → Approve whole inspection → Generate/edit draft Arabic report → Issue report → Inspector views issued report`. If the **whole inspection** is rejected instead, it returns for correction, and report generation is blocked until approval. Individual rejected findings do **not** block the approved inspection's report.
-
-The separate `/live` interface supports interactive detection, but does not itself create an issued inspection report.
-
-## Technology and repository layout
-
-| Layer | Technologies |
-| --- | --- |
-| Backend | Python, Flask, SQLAlchemy and SQLite |
-| Frontend | HTML, CSS, JavaScript, Jinja2 |
-| Visual detection | Ultralytics YOLO, PyTorch, local `best.pt` weights |
-| Optional generative AI | Configurable OpenAI or Gemini VLM/LLM services |
-| Document output | Arabic right-to-left PDFs with ReportLab |
-| Development | Git, GitHub, VS Code |
-
-```text
-AIN-Wind-Turbine-Inspection/
-├── app.py                     # Flask entry point and inference settings
-├── config.py                  # Application configuration
-├── requirements.txt
-├── models/
-│   └── best.pt                # Trained YOLO weights
-├── core/
-│   ├── blueprints/            # Auth, inspections, review, live, reports, admin, etc.
-│   ├── services/
-│   │   ├── detector.py        # YOLO predictions
-│   │   ├── vlm.py             # VLM verification
-│   │   ├── vlm_prompts.py     # Visual verification guidance
-│   │   ├── ai_client.py       # External AI service client
-│   │   ├── worker.py          # Image/video background processing
-│   │   ├── consolidate.py     # Repeated-finding consolidation
-│   │   ├── chat.py            # Ask AIN
-│   │   ├── report_writer.py   # Arabic report draft
-│   │   └── pdf.py             # PDF export
-│   ├── models.py              # Database models
-│   ├── permissions.py         # Role/ownership checks
-│   ├── templates/             # Pages and dashboards
-│   └── static/                # Styles, scripts, fonts, assets
-├── .gitignore
-└── README.md
-```
-
-The local database, uploaded media, `.env`, virtual environments, and other runtime files are **not** part of the GitHub repository.
-
-## Run AIN locally
-
-### Prerequisites
-
-- Python **3.11** (used in the project's local development setup)
-- Git and an internet connection for installing dependencies and using external AI services
-- Optional: an OpenAI or Gemini API key with access to the configured model
-- Sufficient disk space and RAM for PyTorch/YOLO; video processing is typically slower on CPU
-
-### 1. Clone the project
+**Requirements:** Python with compatible PyTorch/Ultralytics support (Python 3.11 is a practical option), local disk space for the model and dependencies, and an internet connection for optional hosted AI services.
 
 ```bash
-git clone https://github.com/lamaalekresh9/AIN-Wind-Turbine-Inspection.git
-cd AIN-Wind-Turbine-Inspection
-```
-
-If this repository is private, request access from its owner before cloning. A QR code linking to a private repository does **not** grant access automatically.
-
-### 2. Create a Python environment and install dependencies
-
-**macOS / Linux**
-
-```bash
+# Run these inside the extracted project folder
 python3.11 -m venv venv
 source venv/bin/activate
+python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-```
-
-**Windows PowerShell**
-
-```powershell
-py -3.11 -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-```
-
-### 3. Configure API access (for examiners)
-
-The team's API keys are **not included in GitHub** because they are private credentials. The included `models/best.pt` supports local YOLO detection, but the VLM, LLM-generated Arabic reporting, and Ask AIN's generative features need an AI provider key.
-
-**Examiners who need to test these features can contact the AIN project team directly. We will provide an API key privately for the evaluation.** Do not put the key in the repository, README, screenshots, or GitHub Issues.
-
-After receiving the evaluation key privately:
-
-1. Create a file named `.env` in the root folder, next to `app.py`.
-2. Add the matching variable for the key provided by the team:
-
-   **For an OpenAI key:**
-
-   ```dotenv
-   OPENAI_API_KEY=PASTE_PROVIDED_KEY_HERE
-   ```
-
-   **For a Gemini key:**
-
-   ```dotenv
-   GEMINI_API_KEY=PASTE_PROVIDED_KEY_HERE
-   ```
-
-3. Select the corresponding provider and supported model in AIN's configuration. Check `app.py`, `config.py`, and `core/services/ai_client.py` for the exact settings in the current version.
-4. Restart the Flask application. If available, use **Admin → Model & system → Test AI connection**, then test a small inspection.
-
-The `.env` file is intentionally excluded by `.gitignore`. Keep the provided credential confidential and use it only for the agreed assessment. The team can revoke it afterward.
-
-### 4. Start the application
-
-```bash
+cp .env.example .env
 python app.py
 ```
 
-Open the URL printed by Flask (normally `http://127.0.0.1:5000`). On initial setup, the app may create a local SQLite database in `instance/` and seed demonstration data. The database is specific to the local machine; it will not be downloaded from GitHub.
+Open **http://127.0.0.1:5000**. If `python3.11` is unavailable, use a compatible installed `python3` instead. On Windows, activate using `venv\Scripts\activate` and copy the example environment file using `copy .env.example .env`.
 
-### Demo sign-in accounts (local evaluation only)
+On first run, the app creates a local SQLite database in `instance/` and, with `DEMO_DATA = True` and `SEED_DEMO_DATA=true`, seeds demo users and sample inspections. These are local demonstration accounts **only**:
 
-On a **fresh local database**, AIN automatically creates these demonstration accounts when `SEED_DEMO_DATA=true` (the default). Open [`http://127.0.0.1:5000/login`](http://127.0.0.1:5000/login) **after starting AIN on your own computer**:
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@ain.local` | `Admin@123` |
+| Reviewer | `reviewer@ain.local` | `Review@123` |
+| Inspector | `inspector@ain.local` | `Inspect@123` |
 
-| Role | Email | Demo password | Purpose |
-| --- | --- | --- | --- |
-| **Inspector** | `inspector@ain.local` | `Inspect@123` | Upload images/videos, inspect YOLO/VLM results, submit inspections, and view issued Arabic reports. |
-| **Human reviewer** | `reviewer@ain.local` | `Review@123` | Review submitted inspections, decide on individual findings, and generate/edit/issue reports. |
-| **Administrator** | `admin@ain.local` | `Admin@123` | Manage users, roles, settings, and authorized administrative functions. |
+Additional demonstration users are described in the bundled `DEMO_CASES.md` and `demo_data/manifest.json`. Demo accounts use known passwords and **must not be enabled on a publicly hosted deployment**. Change credentials, disable demo seeding and harden authentication before production deployment.
 
-**Examiner walkthrough:** First sign in as **Inspector** to upload and submit a test inspection. Sign out and use **Human reviewer** to decide on findings and produce/issue a report. Sign in again as **Inspector** to view the issued Arabic report. The administrator account is only for demonstrating administrative features. New users who register through sign-up are assigned the inspector role by default.
+**The published GitHub repository is source code, not a running website.** Examiners should clone/download it, install dependencies and run the local app to sign in.
 
-**Important:** These are deliberately shared **demo credentials defined in `core/seed.py`**, not private project-team passwords or API keys. They are appropriate **only for locally run, isolated evaluation copies**. **Never deploy an internet-accessible instance with these default users/passwords**, especially the administrator account. For deployments, disable demo seeding (`SEED_DEMO_DATA=false`), create unique accounts, set a strong `SECRET_KEY`, and restrict access. If the local database already exists, these passwords may not work if accounts were previously changed; demo seeding does not overwrite existing users. The local database is intentionally not committed to GitHub.
+### Optional hosted AI API setup
 
-For custom administrator creation the app also provides:
+The YOLO detector works without any hosted AI key. The VLM, LLM reporting and hosted assistant features require configured service credentials. For the academic demonstration, **contact the project team directly for a temporary API key and setup guidance**; the key must be shared privately and never committed to GitHub.
+
+1. Open the local `.env` file created from `.env.example`.
+2. Set `OPENAI_API_KEY=...` or `GEMINI_API_KEY=...` using the credential provided privately.
+3. Review `AI_PROVIDER` and AI model settings in `app.py`; the model identifiers shown there must be supported by the selected provider/account.
+4. Restart the app and, as an admin, use **Model & system → Test AI connection**.
+
+Without working hosted AI access, the app supports YOLO detection, human review and template-based Arabic reports. API provider usage may incur charges. Do not include real keys, tokens, or personal inspection data in a public repository.
+
+### Settings and useful commands
+
+The top of `app.py` controls model path, default confidence/IoU/image size, CPU/GPU selection, hosted AI configuration, VLM heuristics and report/chat settings.
 
 ```bash
-flask --app app create-admin
+flask --app app reset-db      # DESTRUCTIVE: erase local database and reseed demo data
+flask --app app create-admin  # create a local administrator
 ```
 
-The development utility `flask --app app reset-db` deletes local database contents; avoid using it unless you intentionally want to discard local records.
+`reset-db` deletes local inspection history; use only in a disposable demo environment. The application disables Flask auto-reload because video analysis uses background threads.
 
-### 5. Check the AI connection
+## Seeded demo data — important model distinction
 
-When using a provider key, ensure the selected provider/model in the application matches your account and has sufficient quota. The previous README describes an admin **Model & system → Test AI connection** feature; use it if present in the current build. Then test one small image and confirm the VLM's verdict appears separately from YOLO's prediction.
+The package ships **39 sample blade photos**, **11 sample inspections** across different review/report statuses, saved VLM responses and related sample users/turbines. See [`DEMO_CASES.md`](DEMO_CASES.md).
 
-## Examiner testing and API access
+**Do not claim that the seeded sample boxes were produced by the current Ain 10 model.** Their original YOLO boxes were generated by an **earlier merged v1.2 checkpoint**, and the saved VLM responses are demonstration artifacts. This older evidence was intentionally retained to illustrate reviewer scenarios. **Creating a new inspection or using “Re-run analysis” runs the checkpoint at `models/best.pt`**. Its association with the Ain 10 training artifact requires verification against the original exported weights. The 39 demo images include WTBD test photographs associated with the earlier model and WTBs2025 images; do not present the preloaded demo findings as an independent benchmark of the newer checkpoint.
 
-| Capability | After clone, without external AI key | With a supported key |
-| --- | --- | --- |
-| Website, local records, permissions | Yes, after installation/account setup | Yes |
-| YOLO detection using included weights | Yes | Yes |
-| Review/approval process | Yes | Yes |
-| VLM cross-check | No external VLM inference | Yes, subject to provider/model access |
-| Arabic reporting | Template fallback may be available | AI-assisted drafting where configured |
-| Ask AIN generative replies | Not available without an appropriate provider | Yes, where configured |
+The dataset photo rights and redistribution conditions should be confirmed with the dataset owners before distributing demo image assets under a public license.
 
-**Independent testing:** To use the VLM, LLM and Ask AIN generative features, examiners can **contact the AIN project team directly; we will provide the evaluation API key privately.** Follow [Configure API access](#3-configure-api-access-for-examiners) to add it locally. No real API key is included with a GitHub clone.
+## Project map
 
-**Suggested evaluation walkthrough**
+```text
+app.py                         Flask entry point and model/AI settings
+config.py                      environment and application settings
+requirements.txt               Python dependencies
+.env.example                   safe configuration template (not an API key)
+models/best.pt                 configured eight-class YOLO26m checkpoint (provenance to verify)
+DEMO_CASES.md                  walkthrough of seeded review examples
+demo_data/                     demo image assets, manifest and saved VLM output
+core/
+  __init__.py                  application factory, database initialization
+  models.py, permissions.py    persistence and role checks
+  seed.py, demo_data.py        demo setup
+  blueprints/                  authentication, inspection, review, report, admin, live routes
+  services/
+    detector.py                image inference
+    worker.py                  image/video processing and frame sampling
+    consolidate.py             duplicate consolidation
+    vlm.py, vlm_prompts.py     VLM review and prompt design
+    ai_client.py               hosted provider client
+    report_writer.py, pdf.py   Arabic report drafting and PDF export
+    knowledge.py               offline Arabic reference templates
+    model_card.py              embedded evaluation results and protocol
+  templates/, static/          interface, JavaScript, CSS, assets
+instance/                      local database/uploads (ignored by Git)
+```
 
-1. Log in as inspector and create an inspection for a selected turbine/blade.
-2. Upload a defect image or a short sample video; inspect YOLO boxes, classes, scores, and evidence.
-3. With an AI key configured, inspect VLM `confirmed` / `relabeled` / `rejected` decisions and disagreements.
-4. Submit to a reviewer; demonstrate accepting valid findings and rejecting an individual incorrect finding.
-5. Approve the inspection even if individual false-positive findings were rejected; generate, edit, then **issue** the Arabic report. Log in as the inspector and view/download the **issued** report. Separately demonstrate that rejecting the **entire inspection** returns it for correction and blocks report generation.
-6. Ask a contextual question using Ask AIN; show the separate live-detection interface and PDF output if required.
+### Implemented functionality and limitations
 
-Use **non-confidential test media** and have a no-defect example available. Test API connectivity before the assessment.
+- Optional blade segmentation in `detector.py` is a **passthrough unless a blade segmentation model is configured**; do not describe it as an active trained segmentation stage by default.
+- Video processing samples frames and consolidates related detections; this is not UAV flight control or guaranteed continuous real-time streaming.
+- The app's browser camera mode requires localhost or HTTPS for normal camera permissions. No deployment infrastructure is included in this repository.
+- The forgot-password form is a demonstration flow; it **does not send email or actually reset passwords**.
+- Small defects, poor visibility, domain changes and class ambiguity may reduce accuracy, particularly for lower-performing classes; the held-out metrics above should be interpreted in the context of the merged sources.
+- The source package contains an embedded evaluation model card but **not the training experiment files** required for complete independent reproduction of the reported metrics.
 
-## YOLO model evaluation
+## Project team
 
-The following are the **leakage-free group-split results** for **YOLO26m (640 px)**, recorded on **27 October 2026**. Related crops/tiles and near-duplicate source images were grouped into the same data split to reduce evaluation leakage.
+**Prince Sultan University** — Senior Project (2026–2027)  
+**Supervisor:** Dr. Fatimah Alshannaq  
+**Team:** Lama Bin Ekresh, Danyah Alsabti, Norah Aljasser, Yara Altwajari, Tala Alothaim.
 
-**Dataset and experiment:** Forked Roboflow dataset `danyahs-workspace/wind-turbine-we2nt-ez1m6-vsgbq`, version 1 (no Roboflow augmentation), grouped using `group_split.csv`. The validation set contains **528 images (1,053 instances)** and the held-out test set contains **539 images (1,047 instances)**. Training stopped early at epoch **85 of 100** (patience: 25) on an **NVIDIA A100 40 GB**.
+**Repository:** https://github.com/lamaalekresh9/AIN-Wind-Turbine-Inspection
 
-### Overall evaluation
-
-| Split | Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
-| --- | ---: | ---: | ---: | ---: |
-| Validation | 0.681 | 0.670 | 0.660 | 0.323 |
-| **Held-out test** | **0.746** | **0.687** | **0.685** | **0.335** |
-
-### Per-class results — held-out test
-
-| Class | Images | Instances | Precision | Recall | mAP@0.5 | mAP@0.5:0.95 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `crack` | 314 | 698 | 0.897 | 0.894 | 0.913 | 0.520 |
-| `hide_craze` | 54 | 96 | 0.745 | 0.625 | 0.589 | 0.231 |
-| `surface_eye` | 169 | 253 | 0.597 | 0.542 | 0.552 | 0.252 |
-
-Crack detection has the highest test mAP@0.5, while `hide_craze` and `surface_eye` are more challenging. Results reflect the named evaluation split; the installed `models/best.pt` checkpoint should be matched against the evaluated weights before describing these as the web application's exact inference metrics.
-
-**VLM outcomes are different from detection metrics:** `confirmed`, `relabeled`, `rejected`, and `added` describe verification decisions. The YOLO–VLM fused confidence is a heuristic, not a replacement for precision, recall, or mAP.
-
-## Screenshots
-
-The screenshots below illustrate AIN's main workflow using demonstration inspection data. YOLO detections and VLM opinions are **candidate assessments**; a human reviewer is responsible for the final decisions.
-
-### 1. AIN homepage
-
-![AIN homepage](docs/images/homepage.png)
-
-### 2. Inspector workspace and new inspection
-
-The inspector manages inspections, uploads images or videos, and chooses detection settings.
-
-![Inspector dashboard](docs/images/inspector-dashboard.png)
-
-![New inspection and analysis settings](docs/images/new-inspection.png)
-
-### 3. YOLO detection and VLM cross-check
-
-The annotated image shows candidate regions; individual findings retain YOLO confidences and optional VLM assessments. In this demonstration, the VLM disagrees with two `surface_eye` predictions; disagreements remain available for human review rather than being treated as automatic rejections.
-
-![YOLO annotated image and inspection submission](docs/images/yolo-detection.png)
-
-![Findings with YOLO and combined confidence scores](docs/images/inspection-findings.png)
-
-### 4. Human review
-
-The reviewer's dashboard shows submitted inspections, and the review interface supports accepting, rejecting, or editing individual findings. A reviewer can accept a finding even where the VLM disagrees.
-
-![Human reviewer dashboard](docs/images/reviewer-dashboard.png)
-
-![Human reviewer defect decisions](docs/images/reviewer-decisions.png)
-
-### 5. Arabic inspection report
-
-The issued right-to-left report documents the reviewer's decisions, inspection details, and assessment. This sample reflects reviewer-accepted findings, despite VLM disagreement.
-
-![Arabic inspection report](docs/images/arabic-report.png)
-
-### 6. Ask AIN inspection assistant
-
-Ask AIN responds to inspection-specific questions using the accessible findings, review status, and evidence context.
-
-![Ask AIN Arabic inspection conversation](docs/images/ask-ain.png)
-
-## Troubleshooting
-
-| Issue | Check |
-| --- | --- |
-| `ModuleNotFoundError` | Activate the virtual environment; reinstall `requirements.txt`. |
-| YOLO model unavailable | Verify `models/best.pt` and the configured model path. |
-| VLM/LLM unavailable | Check local `.env`, selected provider/model, account quota, and internet connection. |
-| Report contains template text | Check whether an actual LLM call succeeded; template fallback is different from generated output. |
-| Video analysis slow | Frame sampling, video size, CPU/GPU capability, and API latency. |
-| `403` or inaccessible records | Role and record-ownership controls may intentionally deny access. |
-| Data missing after clone | The SQLite database under `instance/` is local and excluded from Git. |
-
-## Limitations and responsible use
-
-- Detects selected **visible** defects in RGB images; no inference of hidden/internal damage, crack depth, or certified blade integrity.
-- Performance can vary with lighting, motion blur, viewpoint, surface conditions, and distribution shift.
-- The VLM and LLM can make mistakes. Human review is required; maintenance suggestions are informational, not authorized repair instructions.
-- Does not autonomously control drones, predict remaining useful life, or integrate with live industrial control systems.
-- Keep inspection imagery, accounts, and API credentials private as appropriate; do not upload confidential imagery to third-party AI services without authorization.
-
-## Team and acknowledgment
-
-**Senior Graduation Project — Prince Sultan University, College of Computer and Information Sciences (2026–2027)**
-
-- Lama Bin Ekresh
-- Danyah Alsabti
-- Norah Aljasser
-- Yara Altwajari
-- Tala Alothaim
-
-**Supervised by Dr. Fatimah Alshannaq.**
-
-We thank Dr. Fatimah Alshannaq for her guidance and feedback, and Prince Sultan University for supporting this work.
-
----
-
-*AIN (عين) supports evidence-based wind turbine blade inspection; it does not replace qualified professional judgment.*
+> Academic prototype. Do not use automatically generated findings or maintenance suggestions as the sole basis for operational safety decisions.

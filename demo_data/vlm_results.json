@@ -1,0 +1,799 @@
+{
+    "about": "VLM cross-check of the sample inspections, applied automatically when demo_data/ is loaded.",
+    "model": "gpt-6-luna",
+    "inspections": {
+     "0": {
+      "status": "done",
+      "frames_checked": 4,
+      "added": 0,
+      "images": {
+       "wtbd_410.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.9,
+          "reason": "Ragged, rough coating loss follows the edge, with exposed underlying material. (Location: leading edge)",
+          "fused": 0.7643,
+          "final_class": "corrosion",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbd_922.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "dirt",
+          "confidence": 0.69,
+          "reason": "Elongated dark surface streak with soft edges; no visible scorching, melting, or coating break to support thunderstrike. (Location: blade surface, near the tip)",
+          "fused": 0.7063,
+          "final_class": "thunderstrike",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_986.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "crack",
+          "confidence": 0.88,
+          "reason": "A jagged, continuous dark line with irregular edges cuts across the coating; it is a crack, not a fine mesh. (Location: mid-span, blade face)",
+          "fused": 0.7729,
+          "final_class": "hide_craze",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "rejected",
+          "class": "hide_craze",
+          "confidence": 0.91,
+          "reason": "The box covers the blade boundary and adjacent dark background; no hairline crack network is visible. (Location: right blade edge)",
+          "fused": 0.3448,
+          "final_class": "hide_craze",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbd_787.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.58,
+          "reason": "Ragged, uneven coating loss follows the blade edge; no visible network of fine craze cracks. (Location: blade edge, mid-span)",
+          "fused": 0.5679,
+          "final_class": "craze",
+          "severity": "high"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "1": {
+      "status": "done",
+      "frames_checked": 4,
+      "added": 0,
+      "images": {
+       "wtbd_383.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "surface_injure",
+          "confidence": 0.99,
+          "reason": "Extensive peeled and torn coating with exposed, splintered laminate; this is severe physical damage, not a craze network. (Location: near the blade tip)",
+          "fused": 0.8639,
+          "final_class": "craze",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_680.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.96,
+          "reason": "Extensive rough, ragged coating loss with pitting follows the leading edge. (Location: leading edge, mid-span)",
+          "fused": 0.8416,
+          "final_class": "corrosion",
+          "severity": "high"
+         },
+         "1": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.94,
+          "reason": "Same continuous band of rough, pitted coating loss is visible in this overlapping box. (Location: leading edge, mid-span)",
+          "fused": 0.5728,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_506.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "surface_injure",
+          "confidence": 0.61,
+          "reason": "The tip edge appears irregular and chipped, but the distant silhouette does not show a continuous crack line. (Location: near tip)",
+          "fused": 0.7169,
+          "final_class": "crack",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_871.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "surface_injure",
+          "confidence": 0.91,
+          "reason": "Jagged area of peeled or missing coating with darker material exposed; this is damage, not a fine crack network. (Location: mid-span, blade face)",
+          "fused": 0.8137,
+          "final_class": "hide_craze",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "relabeled",
+          "class": "surface_injure",
+          "confidence": 0.88,
+          "reason": "Extensive ragged breakage and delamination with exposed darker material; no visible scorch to indicate thunderstrike. (Location: near the blade edge)",
+          "fused": 0.7715,
+          "final_class": "craze",
+          "severity": "high"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "2": {
+      "status": "done",
+      "frames_checked": 4,
+      "added": 0,
+      "images": {
+       "wtbd_222.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.76,
+          "reason": "Ragged brown material loss with surrounding coating deterioration, consistent with coating erosion rather than a clean mechanical gouge. (Location: mid-span, near the blade edge)",
+          "fused": 0.6726,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.83,
+          "reason": "Irregular connected patches of flaking and exposed brown substrate; the surface loss is not a clean localized impact. (Location: mid-span, near the blade edge)",
+          "fused": 0.5449,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbd_173.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "surface_injure",
+          "confidence": 0.87,
+          "reason": "Extensive ragged peeling and material loss along the edge, with exposed underlying material; not a fine crack web. (Location: blade edge, likely trailing edge)",
+          "fused": 0.7594,
+          "final_class": "craze",
+          "severity": "high"
+         },
+         "1": {
+          "verdict": "relabeled",
+          "class": "surface_injure",
+          "confidence": 0.87,
+          "reason": "Same damaged edge area: coating is broken and peeling with rough exposed material, not craze. (Location: blade edge, likely trailing edge)",
+          "fused": 0.6169,
+          "final_class": "craze",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_362.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "crack",
+          "confidence": 0.82,
+          "reason": "A continuous dark, irregular fracture line with chipped or exposed material along its edges; not a mesh of fine cracks. (Location: blade surface, near the edge)",
+          "fused": 0.6855,
+          "final_class": "hide_craze",
+          "severity": "high"
+         },
+         "1": {
+          "verdict": "rejected",
+          "class": "corrosion",
+          "confidence": 0.99,
+          "reason": "The box covers background vegetation and sky, not blade surface. (Location: outside the blade)",
+          "fused": 0.263,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_160.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.96,
+          "reason": "Extensive rough, irregular coating loss with dark exposed substrate and ragged edges. (Location: blade edge, photographed section)",
+          "fused": 0.6917,
+          "final_class": "corrosion",
+          "severity": "high"
+         },
+         "1": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.96,
+          "reason": "Same continuous band of severe, irregular material loss; coating is missing with rough exposed substrate. (Location: blade edge, photographed section)",
+          "fused": 0.6898,
+          "final_class": "corrosion",
+          "severity": "high"
+         },
+         "2": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.96,
+          "reason": "Upper portion of the same rough, flaking area with exposed dark substrate. (Location: blade edge, photographed section)",
+          "fused": 0.6511,
+          "final_class": "corrosion",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "3": {
+      "status": "done",
+      "frames_checked": 3,
+      "added": 2,
+      "images": {
+       "wtbs_8626.jpg": {
+        "boxes": {},
+        "added": []
+       },
+       "wtbs_8829.jpg": {
+        "boxes": {},
+        "added": [
+         {
+          "box": [
+           0.51,
+           0.065,
+           0.59,
+           0.165
+          ],
+          "confidence": 0.71,
+          "reason": "Dark, irregular brown-black scorching and apparent surface damage around the blade tip. (Location: near tip)",
+          "fused": 0.284,
+          "severity": "high",
+          "class": "thunderstrike"
+         }
+        ]
+       },
+       "wtbs_8712.jpg": {
+        "boxes": {},
+        "added": [
+         {
+          "box": [
+           0.469,
+           0.42,
+           0.562,
+           0.859
+          ],
+          "confidence": 0.62,
+          "reason": "Distinct dark, irregular streak and blotches on the surface; no clear coating break or exposed laminate. (Location: mid-span, blade face)",
+          "fused": 0.248,
+          "severity": "low",
+          "class": "dirt"
+         }
+        ]
+       }
+      }
+     },
+     "4": {
+      "status": "done",
+      "frames_checked": 4,
+      "added": 0,
+      "images": {
+       "wtbd_780.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "crack",
+          "confidence": 0.79,
+          "reason": "The box mainly covers the hub and root area; no clear continuous crack is visible at this distance. (Location: hub and blade roots)",
+          "fused": 0.595,
+          "final_class": "crack",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_196.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "surface_injure",
+          "confidence": 0.89,
+          "reason": "Broad irregular areas of scraped or missing coating expose the lighter underlying surface. (Location: near tip, blade face)",
+          "fused": 0.7276,
+          "final_class": "surface_injure",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_890.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "crack",
+          "confidence": 0.98,
+          "reason": "The box is over the sky beside the hub; no blade surface or crack is present there. (Location: near hub, blade root)",
+          "fused": 0.1605,
+          "final_class": "crack",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_562.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "crack",
+          "confidence": 0.73,
+          "reason": "Distant, blurred silhouette; the apparent irregularity is blade overlap or silhouette, with no visible surface fracture. (Location: near hub, blade extending down-right)",
+          "fused": 0.6249,
+          "final_class": "crack",
+          "severity": "high"
+         },
+         "1": {
+          "verdict": "rejected",
+          "class": "crack",
+          "confidence": 0.68,
+          "reason": "The kink is visible only in the distant silhouette; no clear crack line or damaged coating can be distinguished. (Location: tip of left-pointing blade)",
+          "fused": 0.6123,
+          "final_class": "crack",
+          "severity": "high"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "5": {
+      "status": "done",
+      "frames_checked": 4,
+      "added": 0,
+      "images": {
+       "wtbd_381.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "crack",
+          "confidence": 0.99,
+          "reason": "The box covers equipment atop the nacelle against the sky, not a blade surface or a crack. (Location: outside blade, above the nacelle)",
+          "fused": 0.3875,
+          "final_class": "crack",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_416.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.79,
+          "reason": "Irregular flaking and material loss along the edge, rather than a localized mechanical gouge. (Location: leading edge, near root)",
+          "fused": 0.7769,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbd_673.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.84,
+          "reason": "Large irregular, rough patch of coating loss with ragged edges and exposed grey substrate; not a clean mechanical gouge. (Location: blade surface)",
+          "fused": 0.8654,
+          "final_class": "surface_injure",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_96.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "surface_injure",
+          "confidence": 0.96,
+          "reason": "Red/orange warning-stripe paint; the irregular lower edge is repeated on the blade and shows no clear surface damage. (Location: near tip)",
+          "fused": 0.5546,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "rejected",
+          "class": "surface_injure",
+          "confidence": 0.96,
+          "reason": "Red/orange warning-stripe paint with no visible chip or gouge in the blade surface. (Location: outer mid-span)",
+          "fused": 0.5519,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "6": {
+      "status": "done",
+      "frames_checked": 3,
+      "added": 0,
+      "images": {
+       "wtbd_386.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.79,
+          "reason": "Broad rough, dark coating loss with irregular edges continues along the edge; not a discrete gouge. (Location: mid-span, along the blade edge)",
+          "fused": 0.7821,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.82,
+          "reason": "The boxed band has mottled, ragged material loss and exposed-looking substrate consistent with edge erosion. (Location: mid-span toward root, along the blade edge)",
+          "fused": 0.7659,
+          "final_class": "surface_injure",
+          "severity": "high"
+         },
+         "2": {
+          "verdict": "confirmed",
+          "class": "surface_injure",
+          "confidence": 0.77,
+          "reason": "Localized patch of missing or peeled coating with sharp irregular boundaries and lighter substrate visible. (Location: toward the tip, at the blade edge)",
+          "fused": 0.5397,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         },
+         "3": {
+          "verdict": "rejected",
+          "class": "surface_injure",
+          "confidence": 0.72,
+          "reason": "The boxed area is largely intact blade surface and edge; no distinct chip, gouge, or coating break is visible. (Location: near the tip)",
+          "fused": 0.2704,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbd_76.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "crack",
+          "confidence": 0.98,
+          "reason": "The trailing-edge bond line is visibly split and open, with extensive separation; this is structural damage, not a craze mesh. (Location: trailing edge bond line, mid-span)",
+          "fused": 0.8064,
+          "final_class": "craze",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbd_887.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.82,
+          "reason": "Irregular dark, rough patch with apparent coating loss and ragged edges; unlike an even dust film. (Location: blade edge, span position unclear)",
+          "fused": 0.7253,
+          "final_class": "corrosion",
+          "severity": "high"
+         },
+         "1": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.84,
+          "reason": "Same damaged area: mottled, rough coating with localized material loss and uneven boundaries. (Location: blade edge, span position unclear)",
+          "fused": 0.6676,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "7": {
+      "status": "done",
+      "frames_checked": 4,
+      "added": 0,
+      "images": {
+       "wtbs_8708.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "dirt",
+          "confidence": 0.79,
+          "reason": "Distinct mottled streak on an otherwise intact surface; no clear pitting, flaking, or material loss. (Location: blade face, mid-span)",
+          "fused": 0.5421,
+          "final_class": "dirt",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8806.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "corrosion",
+          "confidence": 0.91,
+          "reason": "The box mostly covers vegetation beyond the blade; the small portion on the blade shows no clear coating loss or pitting. (Location: right edge of the central blade, mid-span)",
+          "fused": 0.2728,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8643.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.72,
+          "reason": "A long mottled, rough-looking strip with irregular dark areas suggests coating erosion rather than a clean seam. (Location: mid-span, along a blade edge)",
+          "fused": 0.7184,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8866.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.88,
+          "reason": "Long rough, irregular band of coating loss with grey exposed material; consistent with leading-edge erosion. (Location: leading-edge region, mid-span)",
+          "fused": 0.6869,
+          "final_class": "corrosion",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "8": {
+      "status": "done",
+      "frames_checked": 3,
+      "added": 0,
+      "images": {
+       "wtbs_8743.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "corrosion",
+          "confidence": 0.99,
+          "reason": "Box contains a dark object on the ground beside the blade, not blade-surface corrosion. (Location: off the blade, beside the blade root)",
+          "fused": 0.3338,
+          "final_class": "corrosion",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8386.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "corrosion",
+          "confidence": 0.72,
+          "reason": "Broad, rough dark band with an irregular boundary and apparent coating loss; not a single localized mechanical gouge. (Location: mid-span, along the leading-edge region)",
+          "fused": 0.5346,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8447.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.76,
+          "reason": "Irregular rough, dark material loss continues along the blade; not an intact surface mark. (Location: mid-span, blade face)",
+          "fused": 0.6452,
+          "final_class": "corrosion",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.79,
+          "reason": "The overlapping upper section shows ragged, damaged coating continuing the same rough longitudinal patch. (Location: mid-span, blade face)",
+          "fused": 0.584,
+          "final_class": "corrosion",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "9": {
+      "status": "done",
+      "frames_checked": 3,
+      "added": 0,
+      "images": {
+       "wtbs_8510.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.66,
+          "reason": "Elongated mottled, rough-looking area with dark material-loss spots; consistent with coating deterioration. (Location: mid-span, blade face)",
+          "fused": 0.4793,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8577.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "dirt",
+          "confidence": 0.65,
+          "reason": "Broad mottled dark deposit without clearly visible coating loss, exposed laminate, or flaking. (Location: mid-span, along the blade edge)",
+          "fused": 0.5099,
+          "final_class": "dirt",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "relabeled",
+          "class": "dirt",
+          "confidence": 0.65,
+          "reason": "Same diffuse dark deposit as box #1; no clear evidence of corrosion damage. (Location: mid-span, along the blade edge)",
+          "fused": 0.4461,
+          "final_class": "dirt",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8835.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "relabeled",
+          "class": "dirt",
+          "confidence": 0.62,
+          "reason": "A faint narrow dark streak is visible, without scorching or material damage. (Location: mid-span, near the blade edge)",
+          "fused": 0.5203,
+          "final_class": "dirt",
+          "severity": "low"
+         }
+        },
+        "added": []
+       }
+      }
+     },
+     "10": {
+      "status": "done",
+      "frames_checked": 3,
+      "added": 0,
+      "images": {
+       "wtbs_8706.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "corrosion",
+          "confidence": 0.99,
+          "reason": "The box covers a greenish streak on the tower; no blade or blade-coating damage is visible. (Location: tower, not a blade)",
+          "fused": 0.384,
+          "final_class": "corrosion",
+          "severity": "high"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8488.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "rejected",
+          "class": "hide_craze",
+          "confidence": 0.88,
+          "reason": "Faint straight surface lines appear to be intact seams or mould lines, not a network of cracks. (Location: adjacent blade, mid-span)",
+          "fused": 0.4472,
+          "final_class": "hide_craze",
+          "severity": "medium"
+         },
+         "1": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.72,
+          "reason": "Long irregular dark, rough-looking patch with mottled material loss; unlike an even dust film. (Location: blade face, mid-span)",
+          "fused": 0.5453,
+          "final_class": "corrosion",
+          "severity": "high"
+         },
+         "2": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.74,
+          "reason": "The boxed section shows the same irregular, mottled rough patch consistent with coating deterioration. (Location: blade face, mid-span)",
+          "fused": 0.5528,
+          "final_class": "corrosion",
+          "severity": "high"
+         },
+         "3": {
+          "verdict": "confirmed",
+          "class": "corrosion",
+          "confidence": 0.76,
+          "reason": "Close view shows a dark irregular patch with rough edges and apparent surface deterioration. (Location: blade face, mid-span)",
+          "fused": 0.4816,
+          "final_class": "corrosion",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       },
+       "wtbs_8482.jpg": {
+        "boxes": {
+         "0": {
+          "verdict": "confirmed",
+          "class": "surface_injure",
+          "confidence": 0.82,
+          "reason": "Localized scrape with irregular edges and darker exposed-looking material; unlike the surrounding even dust film. (Location: mid-span, blade face)",
+          "fused": 0.8276,
+          "final_class": "surface_injure",
+          "severity": "medium"
+         }
+        },
+        "added": []
+       }
+      }
+     }
+    },
+    "saved_at": "2026-11-07T01:32:34"
+   }

@@ -1,0 +1,1503 @@
+{
+ "about": "Sample inspections for the Ain demo. Photos: WTBD test split (reviewed inspections) and WTBs2025 (inspections still awaiting a decision); the model was never trained on either. Detections: real output of models/best.pt at confidence 0.25. Reviewer decisions follow the dataset's ground-truth labels. Built by demo_data/build_manifest.py.",
+ "model": "models/best.pt (YOLO26m, WTBD + GFD-YOLOX WTBlade, merged v1.2)",
+ "users": [
+  {
+   "name": "Admin User",
+   "email": "admin@ain.local",
+   "password": "Admin@123",
+   "role": "admin",
+   "job_title": "Platform admin",
+   "joined_days_ago": 90
+  },
+  {
+   "name": "Sara Reviewer",
+   "email": "reviewer@ain.local",
+   "password": "Review@123",
+   "role": "reviewer",
+   "job_title": "Senior blade inspection engineer",
+   "joined_days_ago": 88
+  },
+  {
+   "name": "Khalid Alotaibi",
+   "email": "khalid@ain.local",
+   "password": "Review@123",
+   "role": "reviewer",
+   "job_title": "Blade integrity engineer",
+   "joined_days_ago": 80
+  },
+  {
+   "name": "Omar Inspector",
+   "email": "inspector@ain.local",
+   "password": "Inspect@123",
+   "role": "inspector",
+   "job_title": "Drone inspection pilot",
+   "joined_days_ago": 85
+  },
+  {
+   "name": "Lina Alharbi",
+   "email": "lina@ain.local",
+   "password": "Inspect@123",
+   "role": "inspector",
+   "job_title": "Drone inspection pilot",
+   "joined_days_ago": 70
+  },
+  {
+   "name": "Faisal Alqahtani",
+   "email": "faisal@ain.local",
+   "password": "Inspect@123",
+   "role": "inspector",
+   "job_title": "Field technician",
+   "joined_days_ago": 60
+  }
+ ],
+ "turbines": [
+  {
+   "code": "DJ-WTG-15",
+   "name": "Unit 15",
+   "site": "Dumat Al Jandal Wind Farm",
+   "region": "Al Jouf",
+   "latitude": 29.85,
+   "longitude": 39.93,
+   "manufacturer": "Vestas",
+   "model": "V150-4.2 MW",
+   "hub_height_m": 105,
+   "rotor_diameter_m": 150,
+   "commission_year": 2022,
+   "status": "operational"
+  },
+  {
+   "code": "YB-WTG-08",
+   "name": "Unit 8",
+   "site": "Yanbu Wind Project",
+   "region": "Madinah",
+   "latitude": 24.11,
+   "longitude": 38.09,
+   "manufacturer": "Siemens Gamesa",
+   "model": "SG 5.0-145",
+   "hub_height_m": 110,
+   "rotor_diameter_m": 145,
+   "commission_year": 2025,
+   "status": "operational"
+  }
+ ],
+ "inspections": [
+  {
+   "status": "reported",
+   "days_ago": 38,
+   "submitted_days_ago": 37,
+   "reviewed_days_ago": 36,
+   "inspector": "inspector@ain.local",
+   "reviewer": "reviewer@ain.local",
+   "turbine": "DJ-WTG-07",
+   "blade": "A",
+   "report": true,
+   "title": "Quarterly blade check, Unit 7",
+   "weather": "Clear, wind 6 m/s",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Omar Alshehri",
+   "submit_note": "Leading edge of blade A looks worse than last quarter.",
+   "review_comment": "Findings confirmed. The lightning damage needs a structural check before full restart; the leading-edge corrosion can wait for the next maintenance window.",
+   "images": [
+    {
+     "file": "wtbd_410.jpg",
+     "name": "DJI_20260410.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.6738,
+       "box": [
+        0,
+        0.33638,
+        0.55203,
+        0.44904
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [
+      {
+       "class": "corrosion",
+       "box": [
+        0.49023,
+        0.38965,
+        0.8877,
+        0.49316
+       ]
+      }
+     ],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "410"
+     }
+    },
+    {
+     "file": "wtbd_922.jpg",
+     "name": "DJI_20260922.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "thunderstrike",
+       "conf": 0.7171,
+       "box": [
+        0.56918,
+        0.10532,
+        0.81807,
+        0.15998
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "922"
+     }
+    },
+    {
+     "file": "wtbd_986.jpg",
+     "name": "DJI_20260986.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "hide_craze",
+       "conf": 0.7015,
+       "box": [
+        0.25853,
+        0.50726,
+        0.62798,
+        0.67813
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "hide_craze",
+       "conf": 0.5146,
+       "box": [
+        0.92631,
+        0.00948,
+        0.99957,
+        0.76085
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Reflection / glare."
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "986"
+     }
+    },
+    {
+     "file": "wtbd_787.jpg",
+     "name": "DJI_20260787.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "craze",
+       "conf": 0.5598,
+       "box": [
+        0.09584,
+        0.34183,
+        0.99681,
+        0.70077
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "787"
+     }
+    }
+   ]
+  },
+  {
+   "status": "reported",
+   "days_ago": 31,
+   "submitted_days_ago": 31,
+   "reviewed_days_ago": 29,
+   "inspector": "lina@ain.local",
+   "reviewer": "khalid@ain.local",
+   "turbine": "YB-WTG-03",
+   "blade": "B",
+   "report": true,
+   "title": "Post-storm inspection, Unit 3",
+   "weather": "Hazy, dust in the air",
+   "drone_model": "DJI Mavic 3 Enterprise",
+   "operator": "Lina Alharbi",
+   "submit_note": "Flown after last week's thunderstorm.",
+   "review_comment": "No lightning damage found after the storm. The crack needs a close inspection before the next maintenance window.",
+   "images": [
+    {
+     "file": "wtbd_383.jpg",
+     "name": "DJI_20260383.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "craze",
+       "conf": 0.7798,
+       "box": [
+        0.28053,
+        0.56736,
+        0.96553,
+        0.92941
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "383"
+     }
+    },
+    {
+     "file": "wtbd_680.jpg",
+     "name": "DJI_20260680.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.7626,
+       "box": [
+        0.40014,
+        0.22257,
+        0.6457,
+        1
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.328,
+       "box": [
+        0.40026,
+        0.00787,
+        0.60048,
+        0.85415
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Background, not the blade."
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "680"
+     }
+    },
+    {
+     "file": "wtbd_506.jpg",
+     "name": "DJI_20260506.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "crack",
+       "conf": 0.7881,
+       "box": [
+        0.40978,
+        0.14214,
+        0.48969,
+        0.41284
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "506"
+     }
+    },
+    {
+     "file": "wtbd_871.jpg",
+     "name": "DJI_20260871.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "hide_craze",
+       "conf": 0.7495,
+       "box": [
+        0.22475,
+        0.70544,
+        0.59951,
+        0.80761
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "craze",
+       "conf": 0.6991,
+       "box": [
+        0.63357,
+        0.47256,
+        0.94707,
+        0.92295
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "871"
+     }
+    }
+   ]
+  },
+  {
+   "status": "reported",
+   "days_ago": 24,
+   "submitted_days_ago": 23,
+   "reviewed_days_ago": 22,
+   "inspector": "faisal@ain.local",
+   "reviewer": "reviewer@ain.local",
+   "turbine": "DJ-WTG-12",
+   "blade": "C",
+   "report": true,
+   "title": "Maintenance follow-up, Unit 12",
+   "weather": "Clear",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Faisal Alqahtani",
+   "review_comment": "Coating damage is spreading; schedule recoating.",
+   "images": [
+    {
+     "file": "wtbd_222.jpg",
+     "name": "DJI_20260222.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.6144,
+       "box": [
+        0.6167,
+        0.60026,
+        0.65858,
+        0.65859
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Shadow on an intact surface."
+       }
+      },
+      {
+       "class": "surface_injure",
+       "conf": 0.3549,
+       "box": [
+        0.4359,
+        0.5554,
+        0.67175,
+        0.7942
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [
+      {
+       "class": "surface_injure",
+       "box": [
+        0.47168,
+        0.13574,
+        0.54297,
+        0.28223
+       ]
+      }
+     ],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "222"
+     }
+    },
+    {
+     "file": "wtbd_173.jpg",
+     "name": "DJI_20260173.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "craze",
+       "conf": 0.6857,
+       "box": [
+        0.12806,
+        0.63914,
+        1,
+        0.82041
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "craze",
+       "conf": 0.4481,
+       "box": [
+        0.05048,
+        0.60061,
+        0.87096,
+        0.79557
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Reflection / glare."
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "173"
+     }
+    },
+    {
+     "file": "wtbd_362.jpg",
+     "name": "DJI_20260362.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "hide_craze",
+       "conf": 0.5958,
+       "box": [
+        0.49532,
+        0,
+        0.79896,
+        0.2675
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.4316,
+       "box": [
+        0.00142,
+        0.30244,
+        0.27598,
+        0.98466
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Reflection / glare."
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "362"
+     }
+    },
+    {
+     "file": "wtbd_160.jpg",
+     "name": "DJI_20260160.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.5129,
+       "box": [
+        0.46954,
+        0,
+        0.64088,
+        0.53642
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.5097,
+       "box": [
+        0.44183,
+        0.49984,
+        0.63797,
+        0.99362
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Paint seam, not a defect."
+       }
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.4452,
+       "box": [
+        0.4874,
+        0,
+        0.62372,
+        0.27864
+       ],
+       "review": {
+        "status": "rejected"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "160"
+     }
+    }
+   ]
+  },
+  {
+   "status": "rejected",
+   "days_ago": 18,
+   "submitted_days_ago": 18,
+   "reviewed_days_ago": 17,
+   "inspector": "inspector@ain.local",
+   "reviewer": "khalid@ain.local",
+   "turbine": "DJ-WTG-07",
+   "blade": "B",
+   "title": "Blade B close-up",
+   "weather": "Windy, gusts 11 m/s",
+   "drone_model": "DJI Mavic 3 Enterprise",
+   "operator": "Omar Alshehri",
+   "review_comment": "Two of the three photos are taken from too far away to judge the blade surface. Please re-fly blade B at 8 to 10 m and resubmit.",
+   "images": [
+    {
+     "file": "wtbs_8626.jpg",
+     "name": "DJI_20268626.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8626"
+     }
+    },
+    {
+     "file": "wtbs_8829.jpg",
+     "name": "DJI_20268829.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8829"
+     }
+    },
+    {
+     "file": "wtbs_8712.jpg",
+     "name": "DJI_20268712.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8712"
+     }
+    }
+   ]
+  },
+  {
+   "status": "reported",
+   "days_ago": 15,
+   "submitted_days_ago": 14,
+   "reviewed_days_ago": 13,
+   "inspector": "lina@ain.local",
+   "reviewer": "reviewer@ain.local",
+   "turbine": "YB-WTG-08",
+   "blade": "A",
+   "report": true,
+   "title": "Annual inspection, Unit 8",
+   "weather": "Clear, wind 4 m/s",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Lina Alharbi",
+   "review_comment": "Approved. Several cracks on blade A: schedule rope-access repair.",
+   "images": [
+    {
+     "file": "wtbd_780.jpg",
+     "name": "DJI_20260780.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "crack",
+       "conf": 0.8516,
+       "box": [
+        0.38943,
+        0.40436,
+        0.6824,
+        0.67725
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "780"
+     }
+    },
+    {
+     "file": "wtbd_196.jpg",
+     "name": "DJI_20260196.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.6193,
+       "box": [
+        0.20571,
+        0.32152,
+        0.61157,
+        0.57429
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [
+      {
+       "class": "surface_injure",
+       "box": [
+        0.01172,
+        0.39355,
+        0.21484,
+        0.70703
+       ]
+      }
+     ],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "196"
+     }
+    },
+    {
+     "file": "wtbd_890.jpg",
+     "name": "DJI_20260890.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "crack",
+       "conf": 0.2542,
+       "box": [
+        0.77665,
+        0.43966,
+        0.84218,
+        0.55475
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "890"
+     }
+    },
+    {
+     "file": "wtbd_562.jpg",
+     "name": "DJI_20260562.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "crack",
+       "conf": 0.8615,
+       "box": [
+        0.44077,
+        0.36571,
+        0.6813,
+        0.73581
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "crack",
+       "conf": 0.8071,
+       "box": [
+        0.15059,
+        0.54211,
+        0.22767,
+        0.83031
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "562"
+     }
+    }
+   ]
+  },
+  {
+   "status": "reviewed",
+   "days_ago": 10,
+   "submitted_days_ago": 9,
+   "reviewed_days_ago": 8,
+   "inspector": "faisal@ain.local",
+   "reviewer": "khalid@ain.local",
+   "turbine": "DJ-WTG-15",
+   "blade": "B",
+   "report": true,
+   "title": "Routine inspection, Unit 15",
+   "weather": "Clear",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Faisal Alqahtani",
+   "review_comment": "Approved. Report drafted, waiting for sign-off.",
+   "images": [
+    {
+     "file": "wtbd_381.jpg",
+     "name": "DJI_20260381.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "crack",
+       "conf": 0.6392,
+       "box": [
+        0.46564,
+        0.13566,
+        0.55436,
+        0.23303
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "381"
+     }
+    },
+    {
+     "file": "wtbd_416.jpg",
+     "name": "DJI_20260416.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.7681,
+       "box": [
+        0.25226,
+        0.10616,
+        0.33917,
+        0.31817
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "416"
+     }
+    },
+    {
+     "file": "wtbd_673.jpg",
+     "name": "DJI_20260673.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.8824,
+       "box": [
+        0.22358,
+        0.26105,
+        0.51391,
+        0.58334
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "673"
+     }
+    },
+    {
+     "file": "wtbd_96.jpg",
+     "name": "DJI_20260096.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.8976,
+       "box": [
+        0.85175,
+        0.53175,
+        0.99898,
+        0.63353
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "surface_injure",
+       "conf": 0.8932,
+       "box": [
+        0.58676,
+        0.49153,
+        0.72184,
+        0.62164
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "96"
+     }
+    }
+   ]
+  },
+  {
+   "status": "reviewed",
+   "days_ago": 6,
+   "submitted_days_ago": 5,
+   "reviewed_days_ago": 4,
+   "inspector": "inspector@ain.local",
+   "reviewer": "reviewer@ain.local",
+   "turbine": "YB-WTG-03",
+   "blade": "C",
+   "report": false,
+   "title": "Blade C spot check",
+   "weather": "Clear",
+   "drone_model": "DJI Mavic 3 Enterprise",
+   "operator": "Omar Alshehri",
+   "review_comment": "Approved.",
+   "images": [
+    {
+     "file": "wtbd_386.jpg",
+     "name": "DJI_20260386.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.7768,
+       "box": [
+        0.29872,
+        0.36688,
+        0.58182,
+        0.59451
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "surface_injure",
+       "conf": 0.7298,
+       "box": [
+        0.53409,
+        0.13139,
+        0.99081,
+        0.41853
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "surface_injure",
+       "conf": 0.3861,
+       "box": [
+        0.19428,
+        0.51344,
+        0.30089,
+        0.65837
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "surface_injure",
+       "conf": 0.264,
+       "box": [
+        0.05136,
+        0.64169,
+        0.23281,
+        0.73252
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Reflection / glare."
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "386"
+     }
+    },
+    {
+     "file": "wtbd_76.jpg",
+     "name": "DJI_20260076.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "craze",
+       "conf": 0.6906,
+       "box": [
+        0.17143,
+        0.16502,
+        0.63969,
+        0.57151
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "76"
+     }
+    },
+    {
+     "file": "wtbd_887.jpg",
+     "name": "DJI_20260887.jpg",
+     "w": 1024,
+     "h": 1024,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.6622,
+       "box": [
+        0.41641,
+        0.01708,
+        0.62193,
+        0.85852
+       ],
+       "review": {
+        "status": "accepted"
+       }
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.5526,
+       "box": [
+        0.44408,
+        0.16535,
+        0.61909,
+        1
+       ],
+       "review": {
+        "status": "rejected",
+        "note": "Surface is intact here."
+       }
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBD test split",
+      "stem": "887"
+     }
+    }
+   ]
+  },
+  {
+   "status": "in_review",
+   "days_ago": 3,
+   "submitted_days_ago": 2,
+   "inspector": "lina@ain.local",
+   "turbine": "DJ-WTG-12",
+   "blade": "A",
+   "title": "Blade A leading edge",
+   "weather": "Light dust",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Lina Alharbi",
+   "submit_note": "Please check the tip area first.",
+   "images": [
+    {
+     "file": "wtbs_8708.jpg",
+     "name": "DJI_20268708.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.3768,
+       "box": [
+        0.33889,
+        0.03019,
+        0.55016,
+        0.88433
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8708"
+     }
+    },
+    {
+     "file": "wtbs_8806.jpg",
+     "name": "DJI_20268806.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.3946,
+       "box": [
+        0.5927,
+        0,
+        0.87146,
+        0.82827
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8806"
+     }
+    },
+    {
+     "file": "wtbs_8643.jpg",
+     "name": "DJI_20268643.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.7173,
+       "box": [
+        0.42197,
+        0.28755,
+        0.53953,
+        0.9903
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8643"
+     }
+    },
+    {
+     "file": "wtbs_8866.jpg",
+     "name": "DJI_20268866.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.5582,
+       "box": [
+        0.42605,
+        0.00736,
+        0.5242,
+        0.74738
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8866"
+     }
+    }
+   ]
+  },
+  {
+   "status": "in_review",
+   "days_ago": 2,
+   "submitted_days_ago": 1,
+   "inspector": "inspector@ain.local",
+   "turbine": "YB-WTG-08",
+   "blade": "B",
+   "title": "Blade B routine",
+   "weather": "Clear",
+   "drone_model": "DJI Mavic 3 Enterprise",
+   "operator": "Omar Alshehri",
+   "images": [
+    {
+     "file": "wtbs_8743.jpg",
+     "name": "DJI_20268743.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.5497,
+       "box": [
+        0.05382,
+        0.21331,
+        0.12695,
+        0.2963
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8743"
+     }
+    },
+    {
+     "file": "wtbs_8386.jpg",
+     "name": "DJI_20268386.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.411,
+       "box": [
+        0.44706,
+        0.01808,
+        0.71506,
+        0.74892
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8386"
+     }
+    },
+    {
+     "file": "wtbs_8447.jpg",
+     "name": "DJI_20268447.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.5687,
+       "box": [
+        0.22063,
+        0.65687,
+        0.44093,
+        1
+       ]
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.4466,
+       "box": [
+        0.39258,
+        0.31382,
+        0.51568,
+        0.72734
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8447"
+     }
+    }
+   ]
+  },
+  {
+   "status": "in_review",
+   "days_ago": 1,
+   "submitted_days_ago": 0,
+   "inspector": "faisal@ain.local",
+   "turbine": "DJ-WTG-07",
+   "blade": "C",
+   "title": "Blade C after cleaning",
+   "weather": "Clear, wind 5 m/s",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Faisal Alqahtani",
+   "images": [
+    {
+     "file": "wtbs_8510.jpg",
+     "name": "DJI_20268510.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.3589,
+       "box": [
+        0.26789,
+        0.60698,
+        0.51054,
+        0.99402
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8510"
+     }
+    },
+    {
+     "file": "wtbs_8577.jpg",
+     "name": "DJI_20268577.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.4165,
+       "box": [
+        0.34083,
+        0,
+        0.53857,
+        0.88509
+       ]
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.3101,
+       "box": [
+        0.36242,
+        0,
+        0.57076,
+        0.96048
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8577"
+     }
+    },
+    {
+     "file": "wtbs_8835.jpg",
+     "name": "DJI_20268835.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "thunderstrike",
+       "conf": 0.4538,
+       "box": [
+        0.67521,
+        0.83475,
+        0.68948,
+        0.87269
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8835"
+     }
+    }
+   ]
+  },
+  {
+   "status": "draft",
+   "days_ago": 0,
+   "inspector": "inspector@ain.local",
+   "turbine": "DJ-WTG-15",
+   "blade": "A",
+   "title": "Blade A morning flight",
+   "weather": "Clear",
+   "drone_model": "DJI Matrice 350 RTK + H20T",
+   "operator": "Omar Alshehri",
+   "images": [
+    {
+     "file": "wtbs_8706.jpg",
+     "name": "DJI_20268706.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "corrosion",
+       "conf": 0.6333,
+       "box": [
+        0.43214,
+        0,
+        0.54982,
+        0.80636
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8706"
+     }
+    },
+    {
+     "file": "wtbs_8488.jpg",
+     "name": "DJI_20268488.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "hide_craze",
+       "conf": 0.6654,
+       "box": [
+        0.81656,
+        0.0167,
+        0.99652,
+        0.28244
+       ]
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.4288,
+       "box": [
+        0.42844,
+        0.11934,
+        0.61245,
+        1
+       ]
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.4279,
+       "box": [
+        0.48563,
+        0.12393,
+        0.60673,
+        0.78529
+       ]
+      },
+      {
+       "class": "corrosion",
+       "conf": 0.2961,
+       "box": [
+        0.50707,
+        0.1362,
+        0.60242,
+        0.29215
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8488"
+     }
+    },
+    {
+     "file": "wtbs_8482.jpg",
+     "name": "DJI_20268482.jpg",
+     "w": 640,
+     "h": 640,
+     "detections": [
+      {
+       "class": "surface_injure",
+       "conf": 0.8327,
+       "box": [
+        0.46568,
+        0.77275,
+        0.5588,
+        0.88181
+       ]
+      }
+     ],
+     "added": [],
+     "source": {
+      "dataset": "WTBs2025 (never used for training)",
+      "stem": "8482"
+     }
+    }
+   ]
+  }
+ ],
+ "tickets": [
+  {
+   "user": "inspector@ain.local",
+   "days_ago": 26,
+   "topic": "Uploads",
+   "status": "closed",
+   "subject": "Video upload stayed at 0%",
+   "message": "I uploaded a 9-minute video and the progress stayed at 0% for a long time.",
+   "replies": [
+    {
+     "author": "admin@ain.local",
+     "staff": true,
+     "days_ago": 26,
+     "body": "Long videos are analysed in the background. Use a 2-second frame interval for videos over 5 minutes, and you can close the page while it runs."
+    },
+    {
+     "author": "inspector@ain.local",
+     "days_ago": 25,
+     "body": "Worked with 2 seconds, thanks."
+    }
+   ]
+  },
+  {
+   "user": "lina@ain.local",
+   "days_ago": 1,
+   "topic": "Feature request",
+   "status": "open",
+   "subject": "Blade masking for desert backgrounds",
+   "message": "Sand in the background sometimes gets boxed. Can blade masking be turned on for our site?"
+  }
+ ]
+}

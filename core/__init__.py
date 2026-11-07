@@ -1,4 +1,5 @@
 import json
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 
@@ -49,6 +50,9 @@ def create_app(settings=None, config_class=Config):
 
         seed_if_empty(app)
         _migrate_statuses()
+        from .demo_data import load_if_needed
+
+        load_if_needed(app)
 
     from .settings_store import load as load_settings
 
@@ -69,6 +73,11 @@ def _migrate_statuses():
                                      Inspection.review_decision.is_(None)).all():
         i.review_decision = "approved"
     db.session.commit()
+
+
+def _model_card():
+    from .services.model_card import MODEL_CARD
+    return MODEL_CARD
 
 
 def _register_template_helpers(app):
@@ -122,6 +131,7 @@ def _register_template_helpers(app):
         action_label=action_label,
         fmt_ts=fmt_ts,
         now_year=date.today().year,
+        model_card=_model_card(),
     )
 
     @app.template_filter("dt")
@@ -206,4 +216,9 @@ def _register_cli(app):
         db.drop_all()
         db.create_all()
         seed_if_empty(app, force=True)
+        shutil.rmtree(app.config["UPLOAD_DIR"], ignore_errors=True)
+        Path(app.config["UPLOAD_DIR"]).mkdir(parents=True, exist_ok=True)
+        from .demo_data import load_if_needed
+
+        load_if_needed(app)
         print("Database reset.")

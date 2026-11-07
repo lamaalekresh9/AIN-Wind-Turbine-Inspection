@@ -60,12 +60,15 @@
   <div class="band-inner problem">
     <div>
       <h2>Drones made blade inspection safe. Reviewing the footage is still slow.</h2>
-      <p>A single inspection flight produces hundreds of close-range images per turbine. Inspectors still scan them by eye for cracks and coating damage, and small defects are easy to miss on the hundredth frame.</p>
+      <p>A single inspection flight produces hundreds of close-range images per turbine. Inspectors still scan them by eye for cracks, erosion, lightning burns and coating damage, and small defects are easy to miss on the hundredth frame.</p>
       <p>Saudi Arabia is building out its wind capacity under Vision 2030, so the number of blades to inspect is growing faster than the number of qualified inspectors.</p>
     </div>
     <div>
-      <div class="stat-line"><b>3</b><span>visible defect types detected by the current model: cracks, hidden crazing, and surface eyes (pits and pinholes)</span></div>
-      <div class="stat-line"><b>69%</b><span>mAP@0.5 for the YOLO26l model behind this demo, measured on a grouped validation split (stricter than a random split)</span></div>
+      {% set h = model_card.headline %}{% set cv = model_card.cv[0] %}
+      <div class="stat-line"><b>8</b><span>visible defect types: corrosion, cracks, crazing, hidden crazing, surface damage, pits, lightning damage and dirt</span></div>
+      <div class="stat-line"><b>{{ (h.map50 * 100)|round|int }}%</b><span>mAP@0.5 on {{ h.images }} held-out test photos from two datasets (WTBD and GFD) that were never used for training, with near-duplicates of training photos kept out so the score isn't inflated</span></div>
+      <div class="stat-line"><b>{{ (h.precision * 100)|round|int }}%</b><span>precision on the same test photos (recall {{ (h.recall * 100)|round|int }}%): about 6 in 10 flagged boxes are real defects, and the model finds about 2 in 3 labelled defects</span></div>
+      <div class="stat-line"><b>{{ (cv.map50[0] * 100)|round|int }}%</b><span>mAP@0.5 in 5-fold cross-validation on the training data (± {{ (cv.map50[1] * 100)|round|int }}%), in line with the test result</span></div>
       <div class="stat-line"><b>100%</b><span>of findings in a report are approved by a human reviewer first. Nothing is issued on the model's word alone.</span></div>
     </div>
   </div>

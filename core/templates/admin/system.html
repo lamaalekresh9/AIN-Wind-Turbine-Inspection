@@ -15,7 +15,35 @@
         <dt>Max detections</dt><dd>{{ cfg.MAX_DETECTIONS }} per image</dd>
         <dt>Classes</dt><dd>{% for c in classes %}<div class="cls" style="margin-right:12px"><span class="dot" style="background:{{ c.color }}"></span>{{ c.name }} <span class="ar" style="font-size:14px">{{ c.ar }}</span></div>{% endfor %}</dd>
       </dl>
-      <p class="small muted" style="margin:14px 0 0">To swap models, replace <code>models/best.pt</code> or change <code>MODEL_PATH</code> in <code>app.py</code>. Class names are read from the model, so new classes appear automatically.</p>
+      <p class="small muted" style="margin:14px 0 0">To swap models, replace <code>models/best.pt</code> or change <code>MODEL_PATH</code> in <code>app.py</code>. Class names are read from the model, so new classes appear automatically. Update the measured results in <code>core/services/model_card.py</code>.</p>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Measured performance</h2><span class="badge">30% held-out test</span></div>
+    <div class="panel-body">
+      <dl class="specs">
+        <dt>Model</dt><dd>{{ card.name }}</dd>
+        <dt>Training</dt><dd>{{ card.architecture }} · {{ card.image_size }} px · {{ card.training }} · {{ card.trained }}</dd>
+        <dt>Data</dt><dd>{{ card.datasets }}</dd>
+        <dt>Split</dt><dd>{{ "{:,}".format(card.split.train) }} images for training and cross-validation (70%), {{ card.split.test }} held-out test images (30%: {{ card.split.test_wtbd }} WTBD + {{ card.split.test_gfd }} GFD, {{ "{:,}".format(card.split.test_boxes) }} labelled defects)</dd>
+      </dl>
+      <h3 class="small" style="margin:16px 0 6px">Test set (final model, never seen in training)</h3>
+      <div class="table-wrap"><table class="t">
+        <thead><tr><th>Test set</th><th class="num">Images</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">mAP@0.5</th><th class="num">mAP@0.5:0.95</th></tr></thead>
+        <tbody>{% for r in card.test_sets %}<tr><td>{{ r.set }}</td><td class="num">{{ r.images }}</td><td class="num">{{ r.precision|pct }}</td><td class="num">{{ r.recall|pct }}</td><td class="num">{{ r.map50|pct }}</td><td class="num">{{ r.map50_95|pct }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <p class="small muted" style="margin:8px 0 0">At the app's confidence threshold ({{ cfg.DEFAULT_CONF }}): {% for r in card.test_sets %}{{ r.set|replace("Test, ", "") }} precision {{ r.p_app|pct }}, recall {{ r.r_app|pct }}{{ "; " if not loop.last else "." }}{% endfor %}</p>
+      <h3 class="small" style="margin:16px 0 6px">5-fold cross-validation on the 70% (validation folds, mean ± SD in points)</h3>
+      <div class="table-wrap"><table class="t">
+        <thead><tr><th>Data</th><th class="num">Images</th><th class="num">Precision</th><th class="num">Recall</th><th class="num">mAP@0.5</th><th class="num">mAP@0.5:0.95</th></tr></thead>
+        <tbody>{% for r in card.cv %}<tr><td>{{ r.set }}</td><td class="num">{{ r.images }}</td>{% for k in ("precision", "recall", "map50", "map50_95") %}<td class="num" style="white-space:nowrap">{{ r[k][0]|pct }} <span class="small muted">± {{ "%.1f"|format(r[k][1] * 100) }}</span></td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table></div>
+      <h3 class="small" style="margin:16px 0 6px">Test AP@0.5 per class</h3>
+      <div class="table-wrap"><table class="t">
+        <thead><tr><th>Class</th><th class="num">Both datasets</th><th class="num">WTBD</th><th class="num">GFD</th></tr></thead>
+        <tbody>{% for c in classes %}{% set r = card.per_class_ap50.get(c.name, {}) %}<tr><td><span class="dot" style="background:{{ c.color }};display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px"></span>{{ c.en }}</td><td class="num">{% if r.all is not none and r.all is defined %}{{ r.all|pct }}{% else %}<span class="small muted">-</span>{% endif %}</td><td class="num">{% if r.WTBD is not none and r.WTBD is defined %}{{ r.WTBD|pct }}{% else %}<span class="small muted">not in WTBD</span>{% endif %}</td><td class="num">{% if r.GFD is not none and r.GFD is defined %}{{ r.GFD|pct }}{% else %}<span class="small muted">not in GFD</span>{% endif %}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      <p class="small muted" style="margin:12px 0 0">Test photos were never used for training, model selection or choosing the number of epochs, and near-duplicate photos were kept on the same side of every split (a check found 0 near-copies between test and training). "Not in WTBD / GFD": that dataset has no labelled examples of the class, so there is nothing to score (WTBD has no dirt or pits; GFD has no cracks, crazing or surface damage).</p>
     </div>
   </section>
   <section class="panel">
@@ -45,6 +73,28 @@
       <dt>Max frame gap</dt><dd>{{ cfg.DEDUP_MAX_GAP }} sampled frames</dd>
     </dl></div>
   </section>
+  {% if demo and demo.available %}
+  <section class="panel" id="sample-data">
+    {% set st = demo.state.state if demo.state else None %}
+    <div class="panel-head"><h2>Sample data: VLM results</h2>{% if demo.saved %}<span class="badge b-accepted">Saved</span>{% else %}<span class="badge">Not saved</span>{% endif %}</div>
+    <div class="panel-body">
+      <dl class="specs">
+        <dt>Sample inspections</dt><dd>{{ demo.inspections }} ({{ demo.images }} images), {{ demo.with_vlm }} with VLM results</dd>
+        <dt>Saved in demo_data/</dt><dd>{% if demo.saved %}{{ demo.saved.model }}, {{ demo.saved.inspections }} inspections, {{ demo.saved.saved_at|replace("T", " ") }} UTC{% else %}No: the sample data loads without VLM verdicts{% endif %}</dd>
+        {% if st %}<dt>Last run</dt><dd>{% if st == "running" %}<b>Running:</b> {% elif st in ("failed", "partial") %}<span style="color:var(--bad)">{{ "Stopped" }}:</span> {% endif %}{{ demo.state.msg }}</dd>{% endif %}
+        <dt>Still without a verdict</dt><dd>{{ demo.missing }} image{{ "" if demo.missing == 1 else "s" }}</dd>
+      </dl>
+      <p class="small muted" style="margin:14px 0">The VLM verdicts are saved in <code>demo_data/vlm_results.json</code> and come back whenever the sample data is loaded: a fresh copy of the folder, or <code>flask --app app reset-db</code>. <b>Check missing images</b> only sends the images that have no saved verdict yet ({{ demo.missing }} API call{{ "" if demo.missing == 1 else "s" }}) and keeps every saved one, including the demo cases. Inspections waiting for a decision get the full check (type corrections and missed defects); reviewed ones only get the VLM opinion next to each finding, so reviewer decisions and issued reports stay as they are.</p>
+      {% if ai.configured %}
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <form method="post" action="{{ url_for('admin.demo_vlm') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-primary" {{ 'disabled' if st == 'running' or not demo.missing }}>{{ icon("refresh") }}Check missing images and save</button></form>
+      <form method="post" action="{{ url_for('admin.demo_vlm') }}" onsubmit="return confirm('Re-run the VLM on every sample image and overwrite all saved verdicts? The demo cases may change.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="redo" value="all"><button class="btn btn-sm" {{ 'disabled' if st == 'running' }}>Re-run all and overwrite</button></form>
+      </div>
+      {% else %}<p class="small" style="margin:0">Add an AI key to <code>.env</code> to enable this.</p>{% endif %}
+    </div>
+  </section>
+  {% if st == "running" %}<script>setTimeout(function () { location.reload(); }, 5000);</script>{% endif %}
+  {% endif %}
   <section class="panel">
     <div class="panel-head"><h2>Blade masking</h2>{{ '<span class="badge b-accepted">Ready</span>'|safe if seg_ready else '<span class="badge">Passthrough</span>'|safe }}</div>
     <div class="panel-body small">

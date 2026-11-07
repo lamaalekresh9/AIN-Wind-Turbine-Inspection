@@ -29,7 +29,7 @@ def class_names(path):
         names = m.names
         return [names[i] for i in sorted(names)]
     except Exception:
-        return ["crack", "hide_craze", "surface_eye"]
+        return ["corrosion", "crack", "craze", "dirt", "hide_craze", "surface_eye", "surface_injure", "thunderstrike"]
 
 
 def predict(image_bgr, model_path, conf=0.25, imgsz=640, device=""):
