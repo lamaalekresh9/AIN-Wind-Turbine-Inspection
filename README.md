@@ -6,6 +6,19 @@ AIN is a Flask-based platform for visual inspection of wind turbine blades from 
 
 > **Scope:** AIN is a decision-support prototype for **visible surface defects**. A model prediction, VLM response, or generated recommendation is **not** a certified structural assessment. A qualified reviewer must inspect findings before a report is issued.
 
+## Contents
+
+- [At a glance](#at-a-glance)
+- [Application screenshots](#application-screenshots)
+- [Eight detected defect classes](#eight-detected-defect-classes)
+- [Dataset and training methodology — Ain 10](#dataset-and-training-methodology--ain-10)
+- [End-to-end inspection workflow](#end-to-end-inspection-workflow)
+- [User roles](#user-roles)
+- [Installation — macOS / Linux](#installation--macos--linux)
+- [Seeded demo data](#seeded-demo-data--important-model-distinction)
+- [Project map](#project-map)
+- [Project team](#project-team)
+
 ## At a glance
 
 | Component | Current implementation |
@@ -168,7 +181,7 @@ flowchart TD
 1. **Rejecting a finding** marks that detection as not accepted. A reviewer can reject **every individual finding** and still **approve the whole inspection** after resolving the review. A report can then be generated; with **zero accepted findings**, the code produces an **Arabic template-based draft** stating that there are no approved visible findings. It does **not** fabricate an LLM diagnosis.
 2. **Rejecting the entire inspection** (for example, inadequate images) returns it to the inspector. Report generation is blocked in that whole-inspection-rejected state until the inspector corrects/resubmits and the reviewer completes review.
 
-Only **accepted findings** are included as defect findings in the report. A report is a **draft** until a reviewer issues it; the inspector can access the **issued** report, not the reviewer's unissued draft. Reviewer/admin permissions are enforced on the server.
+Only **accepted findings** are included as defect findings in the report; uncertain and rejected findings do not become approved defect claims. A report is a **draft** until a reviewer issues it; the inspector can access the **issued** report, not the reviewer's unissued draft. Reviewer/admin permissions are enforced on the server.
 
 ### VLM cross-check and confidence fusion
 
@@ -214,7 +227,7 @@ python app.py
 
 Open **http://127.0.0.1:5000**. If `python3.11` is unavailable, use a compatible installed `python3` instead. On Windows, activate using `venv\Scripts\activate` and copy the example environment file using `copy .env.example .env`.
 
-On first run, the app creates a local SQLite database in `instance/` and, with `DEMO_DATA = True` and `SEED_DEMO_DATA=true`, seeds demo users and sample inspections. These are local demonstration accounts **only**:
+On first run, the app creates a local SQLite database in `instance/` and, with `DEMO_DATA = True` and `SEED_DEMO_DATA=true`, seeds demo users and sample inspections. **Use these demo sign-in credentials** (local demonstration accounts only):
 
 | Role | Email | Password |
 |---|---|---|
@@ -225,6 +238,13 @@ On first run, the app creates a local SQLite database in `instance/` and, with `
 Additional demonstration users are described in the bundled `DEMO_CASES.md` and `demo_data/manifest.json`. Demo accounts use known passwords and **must not be enabled on a publicly hosted deployment**. Change credentials, disable demo seeding and harden authentication before production deployment.
 
 **The published GitHub repository is source code, not a running website.** Examiners should clone/download it, install dependencies and run the local app to sign in.
+
+### First-run access checklist
+
+1. Open the local site at `http://127.0.0.1:5000` and sign in using one of the seeded demo accounts above (on a fresh database with demo seeding enabled).
+2. Test a new image as **Inspector**, submit it, and sign in as **Reviewer** to resolve every finding and approve/reject the inspection.
+3. For an approved inspection, generate and review an Arabic report, issue it, then sign in as **Inspector** to view the issued PDF.
+4. Anyone using the public **Sign up** page receives the **Inspector** role. Admin or Reviewer access requires an authorized role assignment.
 
 ### Optional hosted AI API setup
 
